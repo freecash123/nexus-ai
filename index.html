@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Nexus AI — Your intelligence, amplified.</title>
+<meta name="description" content="Nexus AI is the world's most capable personal AI operating system. It thinks, learns, remembers, creates, and acts — while always respecting your control, privacy, and safety." />
+<meta property="og:title" content="Nexus AI — Your intelligence, amplified." />
+<meta property="og:description" content="A next-generation personal AI operating system that thinks, learns, remembers, creates, and acts." />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://freecash123.github.io/nexus-ai/" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-font-smoothing: antialiased; }
+  :root {
+    --bg: #FAFAF8;
+    --card: #FFFFFF;
+    --ink: #1A1A1A;
+    --text: #1A1A1A;
+    --muted: #6B6B6B;
+    --meta: #9B9B9B;
+    --border: #F0F0F0;
+    --hover: #FAFAF8;
+    --lilac: #B8A9E8;
+    --amber: #F5A623;
+    --teal: #4ECDC4;
+    --coral: #FF6B6B;
+    --green: #4ADE80;
+  }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+  .mono { font-family: 'JetBrains Mono', monospace; }
+
+  /* Ambient background gradient */
+  body::before {
+    content: '';
+    position: fixed;
+    top: -20%;
+    left: -10%;
+    width: 60%;
+    height: 60%;
+    background: radial-gradient(circle, rgba(184,169,232,0.15), transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+    animation: float 20s ease-in-out infinite;
+  }
+  body::after {
+    content: '';
+    position: fixed;
+    bottom: -20%;
+    right: -10%;
+    width: 60%;
+    height: 60%;
+    background: radial-gradient(circle, rgba(78,205,196,0.12), transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+    animation: float 25s ease-in-out infinite reverse;
+  }
+  @keyframes float {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    50% { transform: translate(30px, 30px) scale(1.1); }
+  }
+
+  /* NAV */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    background: rgba(255,255,255,0.8);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+    z-index: 100;
+    padding: 16px 32px;
+  }
+  .nav-inner {
+    max-width: 1200px; margin: 0 auto;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .brand {
+    display: flex; align-items: center; gap: 10px;
+    font-weight: 800; font-size: 15px;
+    color: var(--ink);
+    text-decoration: none;
+  }
+  .brand-mark {
+    width: 32px; height: 32px;
+    background: var(--ink);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    position: relative;
+  }
+  .brand-mark::before {
+    content: '';
+    position: absolute; top: -4px; right: -4px;
+    width: 10px; height: 10px; border-radius: 50%;
+    background: var(--lilac);
+    border: 2px solid white;
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.2); opacity: 0.8; }
+  }
+  .brand svg { color: white; }
+  .nav-links { display: flex; gap: 28px; align-items: center; }
+  .nav-links a {
+    color: var(--muted); text-decoration: none;
+    font-size: 13px; font-weight: 500;
+    transition: color 0.2s;
+  }
+  .nav-links a:hover { color: var(--ink); }
+  .nav-cta {
+    background: var(--lilac);
+    color: var(--ink);
+    padding: 8px 16px;
+    border-radius: 999px;
+    text-decoration: none;
+    font-size: 13px; font-weight: 600;
+    transition: all 0.2s;
+    display: inline-flex; align-items: center; gap: 8px;
+  }
+  .nav-cta:hover { background: #A89AD8; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(184,169,232,0.4); }
+  .nav-cta .cta-mark {
+    width: 20px; height: 20px; background: var(--ink);
+    border-radius: 4px; display: inline-flex; align-items: center; justify-content: center;
+  }
+  .nav-cta .cta-mark::after {
+    content: '→'; color: white; font-size: 11px;
+  }
+
+  /* SECTIONS */
+  section { position: relative; z-index: 1; padding: 96px 32px; }
+  .container { max-width: 1200px; margin: 0 auto; }
+  .container-narrow { max-width: 900px; margin: 0 auto; }
+
+  /* HERO */
+  .hero { padding-top: 160px; padding-bottom: 96px; text-align: center; }
+  .hero .badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: rgba(184,169,232,0.1);
+    color: #5B21B6;
+    border: 1px solid rgba(184,169,232,0.3);
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-size: 12px; font-weight: 600;
+    margin-bottom: 24px;
+    animation: fadeInUp 0.6s ease-out;
+  }
+  .hero .badge .dot {
+    width: 6px; height: 6px; border-radius: 50%; background: var(--lilac);
+    animation: pulse 2s ease-in-out infinite;
+  }
+  .hero h1 {
+    font-size: clamp(40px, 7vw, 84px);
+    line-height: 1.05;
+    letter-spacing: -0.04em;
+    font-weight: 800;
+    margin-bottom: 24px;
+    animation: fadeInUp 0.8s ease-out;
+  }
+  .hero h1 .gradient-text {
+    background: linear-gradient(135deg, var(--lilac), var(--teal));
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .hero p.subtitle {
+    font-size: clamp(16px, 2vw, 20px);
+    color: var(--muted);
+    max-width: 640px;
+    margin: 0 auto 40px;
+    line-height: 1.5;
+    animation: fadeInUp 1s ease-out;
+  }
+  .hero-cta {
+    display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;
+    animation: fadeInUp 1.2s ease-out;
+  }
+  .btn-primary, .btn-secondary {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 14px 24px;
+    border-radius: 999px;
+    font-size: 14px; font-weight: 600;
+    text-decoration: none;
+    transition: all 0.2s;
+    border: none; cursor: pointer;
+  }
+  .btn-primary {
+    background: var(--lilac); color: var(--ink);
+  }
+  .btn-primary:hover { background: #A89AD8; transform: translateY(-2px); box-shadow: 0 8px 24px rgba(184,169,232,0.4); }
+  .btn-secondary {
+    background: white; color: var(--ink);
+    border: 1px solid var(--border);
+  }
+  .btn-secondary:hover { background: var(--hover); transform: translateY(-2px); }
+
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* HERO SHOWCASE */
+  .hero-showcase {
+    margin-top: 64px;
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    padding: 32px;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.06);
+    animation: fadeInUp 1.4s ease-out;
+    max-width: 1000px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .chat-demo { display: flex; flex-direction: column; gap: 16px; text-align: left; }
+  .chat-msg {
+    display: flex; gap: 12px; align-items: flex-start;
+    padding: 16px;
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    animation: chatIn 0.6s ease-out both;
+  }
+  .chat-msg.user { background: var(--hover); }
+  .chat-msg.ai { background: white; border-color: rgba(184,169,232,0.3); }
+  .chat-msg:nth-child(2) { animation-delay: 0.3s; }
+  .chat-msg:nth-child(3) { animation-delay: 0.6s; }
+  @keyframes chatIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .chat-avatar {
+    width: 32px; height: 32px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; font-size: 14px; font-weight: 700;
+  }
+  .chat-avatar.user { background: var(--amber); color: white; }
+  .chat-avatar.ai { background: var(--ink); color: white; }
+  .chat-content { flex: 1; }
+  .chat-role { font-size: 11px; color: var(--meta); font-weight: 600; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .chat-text { font-size: 14px; color: var(--text); line-height: 1.5; }
+  .chat-text .highlight { color: #5B21B6; font-weight: 500; }
+  .thinking-tag {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(78,205,196,0.1);
+    color: #115E59;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 11px; font-weight: 600;
+    margin-top: 8px;
+  }
+
+  /* SECTION HEADERS */
+  .section-head { text-align: center; margin-bottom: 64px; }
+  .section-tag {
+    display: inline-block;
+    font-size: 12px; font-weight: 700;
+    color: var(--lilac);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 16px;
+  }
+  .section-head h2 {
+    font-size: clamp(30px, 4vw, 48px);
+    line-height: 1.1;
+    letter-spacing: -0.03em;
+    font-weight: 800;
+    margin-bottom: 16px;
+  }
+  .section-head p {
+    font-size: 17px;
+    color: var(--muted);
+    max-width: 600px;
+    margin: 0 auto;
+  }
+
+  /* CAPABILITIES GRID */
+  .cap-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+  }
+  .cap-card {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 28px;
+    transition: all 0.3s;
+    position: relative;
+    overflow: hidden;
+  }
+  .cap-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.06);
+    border-color: transparent;
+  }
+  .cap-card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: var(--accent);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.3s;
+  }
+  .cap-card:hover::before { transform: scaleX(1); }
+  .cap-icon {
+    width: 44px; height: 44px;
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+    margin-bottom: 16px;
+    background: var(--accent-bg);
+    color: var(--accent);
+  }
+  .cap-card h3 {
+    font-size: 17px; font-weight: 700;
+    margin-bottom: 8px;
+    letter-spacing: -0.01em;
+  }
+  .cap-card p {
+    font-size: 14px; color: var(--muted); line-height: 1.55;
+  }
+
+  /* PILLARS */
+  .pillars {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 24px;
+    margin-top: 48px;
+  }
+  .pillar {
+    text-align: center;
+    padding: 32px 20px;
+  }
+  .pillar-num {
+    font-size: 48px; font-weight: 900;
+    letter-spacing: -0.04em;
+    line-height: 1;
+    background: linear-gradient(135deg, var(--lilac), var(--teal));
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 8px;
+  }
+  .pillar-label {
+    font-size: 13px; color: var(--muted); font-weight: 500;
+  }
+
+  /* ROADMAP */
+  .roadmap-list { display: flex; flex-direction: column; gap: 16px; }
+  .phase {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 28px;
+    display: flex; align-items: flex-start; gap: 20px;
+    transition: all 0.3s;
+  }
+  .phase:hover { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(0,0,0,0.05); }
+  .phase-icon {
+    width: 48px; height: 48px;
+    border-radius: 16px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    font-size: 20px;
+    color: var(--accent);
+    background: var(--accent-bg);
+  }
+  .phase-content { flex: 1; }
+  .phase-meta {
+    display: flex; gap: 8px; align-items: center; margin-bottom: 4px;
+    flex-wrap: wrap;
+  }
+  .phase-tag {
+    font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--accent);
+  }
+  .phase-months {
+    font-size: 10px; font-weight: 600;
+    padding: 2px 8px; border-radius: 999px;
+    background: var(--accent-bg);
+    color: var(--accent);
+    border: 1px solid var(--accent-border);
+  }
+  .phase-content h4 {
+    font-size: 18px; font-weight: 700; margin-bottom: 8px;
+    letter-spacing: -0.01em;
+  }
+  .phase-content p {
+    font-size: 14px; color: var(--muted); line-height: 1.55;
+  }
+  .phase-percent {
+    font-size: 24px; font-weight: 800;
+    color: var(--ink);
+    letter-spacing: -0.02em;
+  }
+  .phase-percent-label {
+    font-size: 10px; color: var(--meta); text-transform: uppercase; letter-spacing: 0.08em;
+  }
+
+  /* PRINCIPLES */
+  .principles-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 16px;
+  }
+  .principle {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px;
+    display: flex; gap: 16px;
+    transition: all 0.2s;
+  }
+  .principle:hover { border-color: var(--lilac); transform: translateX(4px); }
+  .principle-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px; font-weight: 600;
+    color: var(--lilac);
+    flex-shrink: 0;
+    padding-top: 2px;
+  }
+  .principle h5 {
+    font-size: 15px; font-weight: 700; margin-bottom: 4px;
+  }
+  .principle p {
+    font-size: 13px; color: var(--muted); line-height: 1.5;
+  }
+
+  /* CTA SECTION */
+  .cta-section {
+    text-align: center;
+    background: linear-gradient(135deg, rgba(184,169,232,0.1), rgba(78,205,196,0.08));
+    border-radius: 32px;
+    padding: 80px 40px;
+    margin: 0 32px;
+  }
+  .cta-section h2 {
+    font-size: clamp(28px, 4vw, 44px);
+    letter-spacing: -0.03em;
+    font-weight: 800;
+    margin-bottom: 16px;
+  }
+  .cta-section p {
+    font-size: 17px;
+    color: var(--muted);
+    max-width: 500px;
+    margin: 0 auto 32px;
+  }
+
+  /* FOOTER */
+  footer {
+    padding: 48px 32px 32px;
+    border-top: 1px solid var(--border);
+    background: white;
+    position: relative; z-index: 1;
+  }
+  .footer-inner {
+    max-width: 1200px; margin: 0 auto;
+    display: flex; justify-content: space-between; align-items: center;
+    flex-wrap: wrap; gap: 24px;
+  }
+  .footer-brand {
+    display: flex; align-items: center; gap: 10px;
+    font-weight: 700; font-size: 14px;
+  }
+  .footer-links {
+    display: flex; gap: 24px; flex-wrap: wrap;
+  }
+  .footer-links a {
+    color: var(--muted); text-decoration: none;
+    font-size: 13px; font-weight: 500;
+    transition: color 0.2s;
+  }
+  .footer-links a:hover { color: var(--ink); }
+  .footer-meta {
+    text-align: center;
+    padding-top: 24px;
+    margin-top: 24px;
+    border-top: 1px solid var(--border);
+    color: var(--meta);
+    font-size: 12px;
+  }
+
+  /* MOBILE */
+  @media (max-width: 768px) {
+    section { padding: 64px 20px; }
+    nav { padding: 12px 20px; }
+    .nav-links a:not(.nav-cta) { display: none; }
+    .cta-section { margin: 0 20px; padding: 56px 24px; }
+    .phase { flex-direction: column; }
+    .phase-percent-wrap { display: flex; gap: 12px; align-items: baseline; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <a href="#top" class="brand">
+      <span class="brand-mark">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 4.44-1.04Z"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-4.44-1.04Z"/></svg>
+      </span>
+      Nexus AI
+    </a>
+    <div class="nav-links">
+      <a href="#capabilities">Capabilities</a>
+      <a href="#roadmap">Roadmap</a>
+      <a href="#principles">Principles</a>
+      <a href="https://github.com/freecash123/nexus-ai" target="_blank" rel="noopener">GitHub</a>
+      <a href="#waitlist" class="nav-cta">
+        <span class="cta-mark"></span>
+        Join waitlist
+      </a>
+    </div>
+  </div>
+</nav>
+
+<section class="hero" id="top">
+  <div class="container">
+    <div class="badge">
+      <span class="dot"></span>
+      NEXUS AI v0.1 · PRE-ALPHA
+    </div>
+    <h1>
+      Your intelligence,<br />
+      <span class="gradient-text">amplified.</span>
+    </h1>
+    <p class="subtitle">
+      A next-generation AI operating system that thinks, learns, remembers, creates, and acts on your behalf — while always respecting your control, privacy, and safety.
+    </p>
+    <div class="hero-cta">
+      <a href="#waitlist" class="btn-primary">
+        Join the waitlist
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+      </a>
+      <a href="https://github.com/freecash123/nexus-ai" target="_blank" rel="noopener" class="btn-secondary">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.475 2 2 6.475 2 12a9.994 9.994 0 006.838 9.488c.5.087.687-.213.687-.476 0-.237-.013-1.024-.013-1.862-2.512.463-3.162-.612-3.362-1.175-.113-.288-.6-1.175-1.025-1.413-.35-.187-.85-.65-.013-.662.788-.013 1.35.725 1.538 1.025.9 1.512 2.338 1.087 2.912.825.088-.65.35-1.087.638-1.337-2.225-.25-4.55-1.113-4.55-4.938 0-1.088.388-1.987 1.025-2.688-.1-.25-.45-1.275.1-2.65 0 0 .837-.263 2.75 1.025a9.28 9.28 0 012.5-.338c.85 0 1.7.112 2.5.337 1.912-1.3 2.75-1.024 2.75-1.024.55 1.375.2 2.4.1 2.65.637.7 1.025 1.587 1.025 2.687 0 3.838-2.337 4.688-4.562 4.938.362.312.675.912.675 1.85 0 1.337-.013 2.412-.013 2.75 0 .262.188.574.688.474A10.016 10.016 0 0022 12c0-5.525-4.475-10-10-10z"/></svg>
+        View on GitHub
+      </a>
+    </div>
+
+    <div class="hero-showcase">
+      <div class="chat-demo">
+        <div class="chat-msg user">
+          <div class="chat-avatar user">A</div>
+          <div class="chat-content">
+            <div class="chat-role">You · 2:14 PM</div>
+            <div class="chat-text">Help me plan a podcast launch by next month. I have zero equipment and no idea where to start.</div>
+          </div>
+        </div>
+        <div class="chat-msg ai">
+          <div class="chat-avatar ai">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 4.44-1.04Z"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-4.44-1.04Z"/></svg>
+          </div>
+          <div class="chat-content">
+            <div class="chat-role">Nexus AI · thinking through 8 steps</div>
+            <div class="chat-text">
+              I've decomposed this into <span class="highlight">8 sub-goals</span> across 4 weeks. I'll spawn a <span class="highlight">Researcher agent</span> to compare 3 mic setups under $200, a <span class="highlight">Writer agent</span> to draft your first 5 episode outlines, and a <span class="highlight">Designer agent</span> for cover art. I'll track deadlines and remind you 24h before each. Shall I start?
+              <div class="thinking-tag">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                Reasoning trace available · Approval gates active
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="chat-msg user" style="animation-delay: 0.9s;">
+          <div class="chat-avatar user">A</div>
+          <div class="chat-content">
+            <div class="chat-role">You · 2:15 PM</div>
+            <div class="chat-text">Go for it. Show me the plan first though.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="pillars">
+      <div class="pillar">
+        <div class="pillar-num">100+</div>
+        <div class="pillar-label">Languages supported</div>
+      </div>
+      <div class="pillar">
+        <div class="pillar-num">&lt;300ms</div>
+        <div class="pillar-label">Voice response latency</div>
+      </div>
+      <div class="pillar">
+        <div class="pillar-num">E2E</div>
+        <div class="pillar-label">Encrypted by default</div>
+      </div>
+      <div class="pillar">
+        <div class="pillar-num">6</div>
+        <div class="pillar-label">Specialized sub-agents</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="capabilities">
+  <div class="container">
+    <div class="section-head">
+      <div class="section-tag">Capabilities</div>
+      <h2>One assistant. Every dimension.</h2>
+      <p>Nexus AI unifies reasoning, perception, creation, and action into a single, coherent operating system for your life and work.</p>
+    </div>
+    <div class="cap-grid">
+      <div class="cap-card" style="--accent: #B8A9E8; --accent-bg: rgba(184,169,232,0.12);">
+        <div class="cap-icon">🧠</div>
+        <h3>Core Intelligence</h3>
+        <p>Chain-of-thought reasoning with transparent, on-demand explanations. Continuous learning from your feedback, entirely under your control.</p>
+      </div>
+      <div class="cap-card" style="--accent: #4ECDC4; --accent-bg: rgba(78,205,196,0.12);">
+        <div class="cap-icon">👁️</div>
+        <h3>Multimodal Understanding</h3>
+        <p>Text, voice, images, PDFs, video, and live camera — all understood simultaneously. Ask "what's this?" while pointing your camera.</p>
+      </div>
+      <div class="cap-card" style="--accent: #F5A623; --accent-bg: rgba(245,166,35,0.12);">
+        <div class="cap-icon">🤖</div>
+        <h3>Personal AI Agent</h3>
+        <p>Turns high-level goals into actionable plans. Spawns specialized sub-agents for coding, writing, design, and analysis. Tracks every deadline.</p>
+      </div>
+      <div class="cap-card" style="--accent: #FF6B6B; --accent-bg: rgba(255,107,107,0.12);">
+        <div class="cap-icon">🎨</div>
+        <h3>Creative Studio</h3>
+        <p>Generate images, videos, music, and 3D models. Build websites, apps, and games from natural language. Edit photos and videos professionally.</p>
+      </div>
+      <div class="cap-card" style="--accent: #4ADE80; --accent-bg: rgba(74,222,128,0.12);">
+        <div class="cap-icon">💻</div>
+        <h3>Developer Mode</h3>
+        <p>Write, debug, test, and explain code. Design APIs and databases. Analyze logs and performance. Auto-generate documentation.</p>
+      </div>
+      <div class="cap-card" style="--accent: #B8A9E8; --accent-bg: rgba(184,169,232,0.12);">
+        <div class="cap-icon">📊</div>
+        <h3>Business Mode</h3>
+        <p>Analyze financials, build live dashboards, forecast trends, and automate workflows — all with human-in-the-loop approval.</p>
+      </div>
+      <div class="cap-card" style="--accent: #F5A623; --accent-bg: rgba(245,166,35,0.12);">
+        <div class="cap-icon">📚</div>
+        <h3>Learning Mode</h3>
+        <p>Interactive tutoring across any subject. Adaptive quizzes and practice problems. Explanations tuned to your level.</p>
+      </div>
+      <div class="cap-card" style="--accent: #4ECDC4; --accent-bg: rgba(78,205,196,0.12);">
+        <div class="cap-icon">🎥</div>
+        <h3>Live Assistant</h3>
+        <p>Real-time understanding of your camera and mic. Reads text aloud, identifies objects, and guides you through tasks step by step.</p>
+      </div>
+      <div class="cap-card" style="--accent: #FF6B6B; --accent-bg: rgba(255,107,107,0.12);">
+        <div class="cap-icon">⚡</div>
+        <h3>Automation</h3>
+        <p>Connects to your calendar, email, cloud storage, and approved apps. Runs multi-step workflows with confirmation gates for sensitive actions.</p>
+      </div>
+      <div class="cap-card" style="--accent: #4ADE80; --accent-bg: rgba(74,222,128,0.12);">
+        <div class="cap-icon">🔒</div>
+        <h3>Privacy & Security</h3>
+        <p>End-to-end encrypted. On-device processing when possible. Camera, mic, and location require explicit permission. Delete anything, anytime.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="roadmap" style="background: white; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
+  <div class="container-narrow">
+    <div class="section-head">
+      <div class="section-tag">Roadmap</div>
+      <h2>Building a platform, not a product.</h2>
+      <p>A five-phase, 24–36 month journey from foundational text intelligence to a global multi-modal AI OS.</p>
+    </div>
+    <div class="roadmap-list">
+      <div class="phase" style="--accent: #B8A9E8; --accent-bg: rgba(184,169,232,0.12); --accent-border: rgba(184,169,232,0.3);">
+        <div class="phase-icon">🚀</div>
+        <div class="phase-content">
+          <div class="phase-meta">
+            <span class="phase-tag">Phase 1 · Nexus Core</span>
+            <span class="phase-months">Months 1–6</span>
+          </div>
+          <h4>Foundation</h4>
+          <p>Best-in-class text AI with long-term memory, chain-of-thought reasoning, and 20+ languages. Web + mobile apps, developer mode, E2E encryption, plugin SDK alpha.</p>
+        </div>
+        <div class="phase-percent-wrap">
+          <div>
+            <div class="phase-percent">0%</div>
+            <div class="phase-percent-label">complete</div>
+          </div>
+        </div>
+      </div>
+      <div class="phase" style="--accent: #4ECDC4; --accent-bg: rgba(78,205,196,0.12); --accent-border: rgba(78,205,196,0.3);">
+        <div class="phase-icon">👁️</div>
+        <div class="phase-content">
+          <div class="phase-meta">
+            <span class="phase-tag">Phase 2 · Nexus Sense</span>
+            <span class="phase-months">Months 7–12</span>
+          </div>
+          <h4>Multimodal</h4>
+          <p>Voice conversations, image + video understanding, live camera, diagram reading. Multi-modal fusion. Live Assistant v1. Learning Mode v1.</p>
+        </div>
+        <div class="phase-percent-wrap">
+          <div>
+            <div class="phase-percent">0%</div>
+            <div class="phase-percent-label">complete</div>
+          </div>
+        </div>
+      </div>
+      <div class="phase" style="--accent: #F5A623; --accent-bg: rgba(245,166,35,0.12); --accent-border: rgba(245,166,35,0.3);">
+        <div class="phase-icon">🤖</div>
+        <div class="phase-content">
+          <div class="phase-meta">
+            <span class="phase-tag">Phase 3 · Nexus Agent</span>
+            <span class="phase-months">Months 13–18</span>
+          </div>
+          <h4>Agency</h4>
+          <p>Goal decomposition, project management, multi-agent orchestration. Deep integrations with Gmail, Calendar, Slack, Drive. Automated research with citations.</p>
+        </div>
+        <div class="phase-percent-wrap">
+          <div>
+            <div class="phase-percent">0%</div>
+            <div class="phase-percent-label">complete</div>
+          </div>
+        </div>
+      </div>
+      <div class="phase" style="--accent: #FF6B6B; --accent-bg: rgba(255,107,107,0.12); --accent-border: rgba(255,107,107,0.3);">
+        <div class="phase-icon">🎨</div>
+        <div class="phase-content">
+          <div class="phase-meta">
+            <span class="phase-tag">Phase 4 · Nexus Create</span>
+            <span class="phase-months">Months 19–24</span>
+          </div>
+          <h4>Creation</h4>
+          <p>Full generative suite: images, video, music, logos, marketing assets. Website + app generation. Business Mode v1. Plugin marketplace launch.</p>
+        </div>
+        <div class="phase-percent-wrap">
+          <div>
+            <div class="phase-percent">0%</div>
+            <div class="phase-percent-label">complete</div>
+          </div>
+        </div>
+      </div>
+      <div class="phase" style="--accent: #4ADE80; --accent-bg: rgba(74,222,128,0.12); --accent-border: rgba(74,222,128,0.3);">
+        <div class="phase-icon">🌍</div>
+        <div class="phase-content">
+          <div class="phase-meta">
+            <span class="phase-tag">Phase 5 · Nexus Everywhere</span>
+            <span class="phase-months">Months 25–36</span>
+          </div>
+          <h4>Scale & Polish</h4>
+          <p>Full offline mode. Game generation. Enterprise features & SSO. Global infrastructure. 100+ language fluency. 99.99% SLA. Public API platform.</p>
+        </div>
+        <div class="phase-percent-wrap">
+          <div>
+            <div class="phase-percent">0%</div>
+            <div class="phase-percent-label">complete</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="principles">
+  <div class="container">
+    <div class="section-head">
+      <div class="section-tag">Principles</div>
+      <h2>What we stand for.</h2>
+      <p>Ten founding principles that shape every decision we make.</p>
+    </div>
+    <div class="principles-grid">
+      <div class="principle">
+        <span class="principle-num">01</span>
+        <div>
+          <h5>Intelligence should be transparent</h5>
+          <p>Every conclusion has a traceable path. Ask "why?" and get a real answer.</p>
+        </div>
+      </div>
+      <div class="principle">
+        <span class="principle-num">02</span>
+        <div>
+          <h5>Memory is a right, not a feature</h5>
+          <p>Your memories are yours. Delete anything, anytime, permanently.</p>
+        </div>
+      </div>
+      <div class="principle">
+        <span class="principle-num">03</span>
+        <div>
+          <h5>Agency requires trust</h5>
+          <p>Every autonomous action has a confirmation gate. You are always in control.</p>
+        </div>
+      </div>
+      <div class="principle">
+        <span class="principle-num">04</span>
+        <div>
+          <h5>Privacy is not optional</h5>
+          <p>End-to-end encryption by default. Never trained on your private data without opt-in.</p>
+        </div>
+      </div>
+      <div class="principle">
+        <span class="principle-num">05</span>
+        <div>
+          <h5>AI should be multimodal by nature</h5>
+          <p>Voice, gesture, images, and text — all at once, like humans.</p>
+        </div>
+      </div>
+      <div class="principle">
+        <span class="principle-num">06</span>
+        <div>
+          <h5>Creation is a human right</h5>
+          <p>AI amplifies human creativity, never replaces it. You are the artist.</p>
+        </div>
+      </div>
+      <div class="principle">
+        <span class="principle-num">07</span>
+        <div>
+          <h5>Learning never stops</h5>
+          <p>Adapts to you over time, transparently. Reset or disable at any time.</p>
+        </div>
+      </div>
+      <div class="principle">
+        <span class="principle-num">08</span>
+        <div>
+          <h5>Technology should serve everyone</h5>
+          <p>Accessibility-first. Multi-language. Offline mode. Broad access pricing.</p>
+        </div>
+      </div>
+      <div class="principle">
+        <span class="principle-num">09</span>
+        <div>
+          <h5>Open ecosystems beat walled gardens</h5>
+          <p>Open plugin architecture. Deep integrations. Always exportable data.</p>
+        </div>
+      </div>
+      <div class="principle">
+        <span class="principle-num">10</span>
+        <div>
+          <h5>Success = human flourishing</h5>
+          <p>Measured by tasks completed, things learned, time saved — not engagement.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="waitlist">
+  <div class="cta-section">
+    <h2>Be the first to experience Nexus AI.</h2>
+    <p>Join the waitlist to get early access, shape the roadmap, and lock in founding-member pricing.</p>
+    <form onsubmit="handleSubmit(event)" style="display: flex; gap: 8px; max-width: 440px; margin: 0 auto; flex-wrap: wrap; justify-content: center;">
+      <input type="email" placeholder="you@example.com" required style="flex: 1; min-width: 220px; padding: 14px 20px; border-radius: 999px; border: 1px solid var(--border); background: white; font-size: 14px; font-family: inherit; outline: none; transition: border-color 0.2s;" onfocus="this.style.borderColor='#B8A9E8'" onblur="this.style.borderColor='var(--border)'" />
+      <button type="submit" class="btn-primary" style="flex-shrink: 0;">
+        Join the waitlist
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+      </button>
+    </form>
+    <p id="thanks" style="margin-top: 20px; color: var(--green); font-weight: 600; display: none;">✓ You're on the list. We'll be in touch.</p>
+  </div>
+</section>
+
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <span class="brand-mark" style="width: 24px; height: 24px; border-radius: 6px;">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 4.44-1.04Z"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-4.44-1.04Z"/></svg>
+      </span>
+      Nexus AI
+    </div>
+    <div class="footer-links">
+      <a href="https://github.com/freecash123/nexus-ai" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://github.com/freecash123/nexus-ai/blob/main/docs/MANIFESTO.md" target="_blank" rel="noopener">Manifesto</a>
+      <a href="https://github.com/freecash123/nexus-ai/blob/main/docs/CAPABILITIES.md" target="_blank" rel="noopener">Capabilities</a>
+      <a href="https://github.com/freecash123/nexus-ai/blob/main/architecture/ARCHITECTURE.md" target="_blank" rel="noopener">Architecture</a>
+      <a href="https://github.com/freecash123/nexus-ai/blob/main/roadmap/ROADMAP.md" target="_blank" rel="noopener">Roadmap</a>
+      <a href="https://github.com/freecash123/nexus-ai/blob/main/docs/PRIVACY.md" target="_blank" rel="noopener">Privacy</a>
+    </div>
+  </div>
+  <div class="footer-meta">
+    © 2026 Nexus AI · Your intelligence, amplified. · <span class="mono">Built openly on GitHub</span>
+  </div>
+</footer>
+
+<script>
+  function handleSubmit(e) {
+    e.preventDefault();
+    document.getElementById('thanks').style.display = 'block';
+    e.target.reset();
+    setTimeout(() => { document.getElementById('thanks').style.display = 'none'; }, 5000);
+  }
+</script>
+
+</body>
+</html>
