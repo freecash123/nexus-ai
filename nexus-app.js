@@ -252,58 +252,92 @@ function sendMessage() {
   container.appendChild(thinkingEl);
   container.scrollTop = container.scrollHeight;
 
-  // Use setTimeout chain to simulate thinking steps
-  var thinkingSteps = ['Analyzing your question...', 'Retrieving relevant context...', 'Formulating response strategy...', 'Generating answer...'];
-  var stepIndex = 1;
+  // Use setTimeout chain instead of async/await for max compatibility
+  var steps = ['Analyzing your question...', 'Retrieving context...', 'Formulating strategy...', 'Generating answer...'];
+  var stepIdx = 1;
   
-  function nextStep() {
-    if (stepIndex < thinkingSteps.length) {
-      updateThinkingStep(thinkingSteps[stepIndex]);
-      stepIndex++;
-      setTimeout(nextStep, 400 + Math.random() * 600);
+  function next() {
+    if (stepIdx < steps.length) {
+      updateThinkingStep(steps[stepIdx]);
+      stepIdx++;
+      setTimeout(next, 500);
     } else {
-      setTimeout(finishResponse, 300);
+      setTimeout(done, 400);
     }
   }
   
-  function finishResponse() {
+  function done() {
     try {
-      var response;
+      var resp;
       if (state.settings.provider === 'gemini' && state.settings.apiKey) {
-        // For async API, use fetch with then
-        callGeminiCallback(chat.messages, function(resp) {
-          showResponse(resp);
-        }, function(err) {
-          showError(err);
-        });
+        callGeminiWithCallback(chat.messages, show, fail);
+        return;
       } else {
-        response = simulateResponse(text);
-        showResponse(response);
+        resp = simulateResponse(text);
       }
+      show(resp);
     } catch(e) {
-      showError(e);
+      fail(e);
     }
   }
   
-  function showResponse(response) {
+  function show(resp) {
     var el = document.getElementById('thinkingMsg');
     if (el && el.parentNode) el.remove();
-    chat.messages.push({ role: 'ai', content: response.text, thinking: response.thinking });
+    chat.messages.push({ role: 'ai', content: resp.text, thinking: resp.thinking });
     isGenerating = false;
     updateSendBtn();
     renderAll();
   }
   
-  function showError(e) {
+  function fail(e) {
+    console.error('Nexus Error:', e);
     var el = document.getElementById('thinkingMsg');
     if (el && el.parentNode) el.remove();
-    chat.messages.push({ role: 'ai', content: 'Error: ' + (e.message || 'Unknown') + '. Try Simulation Mode in Settings.' });
+    chat.messages.push({ role: 'ai', content: 'Error: ' + (e.message || 'Unknown') });
     isGenerating = false;
     updateSendBtn();
     renderAll();
   }
   
-  setTimeout(nextStep, 500);
+  setTimeout(next, 500);
+}
+
+// Keep old async versions for reference but they won't be called directly
+async function doSendMessage() {
+  // Legacy - not used
+}
+
+async function callGemini(messages) {
+  // Legacy - use callGeminiWithCallback instead
+  var apiKey = state.settings.apiKey;
+  var systemPrompt = "You are Nexus AI, a personal AI assistant. Be helpful, thoughtful, warm, thorough. Use markdown.";
+  var history = messages.slice(0,-1).map(function(m){return{role:m.role==='user'?'user':'model',parts:[{text:m.content}]};});
+  var last = messages[messages.length-1];
+  var contents = history.length>0?history:[];
+  contents.push({role:'user',parts:[{text:last.content}]});
+  var resp = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key='+apiKey,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:contents,systemInstruction:{parts:[{text:systemPrompt}]},generationConfig:{temperature:0.7,topK:40,topP:0.95,maxOutputTokens:4096}})});
+  if(!resp.ok){var err=await resp.json();throw new Error(err.error?err.error.message:'API error');}
+  var data=await resp.json();
+  var text=(data.candidates&&data.candidates[0]&&data.candidates[0].content&&data.candidates[0].content.parts&&data.candidates[0].content.parts[0])?data.candidates[0].content.parts[0].text:'No response';
+  return{text:text,thinking:['Used Gemini 2.0 Flash','Processed messages','Generated']};
+}
+
+function callGeminiWithCallback(messages, onSuccess, onError) {
+  var apiKey = state.settings.apiKey;
+  var systemPrompt = "You are Nexus AI, a personal AI assistant. Be helpful, thoughtful, warm, thorough. Use markdown.";
+  var history = messages.slice(0,-1).map(function(m){return{role:m.role==='user'?'user':'model',parts:[{text:m.content}]};});
+  var last = messages[messages.length-1];
+  var contents = history.length>0?history:[];
+  contents.push({role:'user',parts:[{text:last.content}]});
+  
+  fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key='+apiKey,{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({contents:contents,systemInstruction:{parts:[{text:systemPrompt}]},generationConfig:{temperature:0.7,topK:40,topP:0.95,maxOutputTokens:4096}})
+  }).then(function(r){if(!r.ok)return r.json().then(function(e){throw new Error(e.error?e.error.message:'API error '+r.status)});return r.json()})
+  .then(function(d){var t=(d.candidates&&d.candidates[0]&&d.candidates[0].content&&d.candidates[0].content.parts&&d.candidates[0].content.parts[0])?d.candidates[0].content.parts[0].text:'No response';onSuccess({text:t,thinking:['Gemini 2.0 Flash','Processed','Generated']});})
+  .catch(function(e){onError(e);});
 }
 
 // ===== GEMINI API =====
@@ -424,7 +458,7 @@ function simulateResponse(text) {
 
 // ===== INIT =====
 window.addEventListener("unhandledrejection", function(e) { console.error("Unhandled rejection:", e.reason); });
-document.addEventListener("DOMContentLoaded"', function() {
+document.addEventListener("DOMContentLoaded", function() {
   updateStatusBadge();
   renderAll();
   document.getElementById('userInput').focus();
