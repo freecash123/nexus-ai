@@ -231,7 +231,22 @@ function updateThinkingStep(step) {
 
 function sleep(ms) { return new Promise(function(r) { setTimeout(r, ms); }); }
 
-async function sendMessage() {
+function sendMessage() {
+  doSendMessage().catch(function(e) {
+    console.error('Nexus AI Error:', e);
+    isGenerating = false;
+    updateSendBtn();
+    try {
+      var chat = ensureChat();
+      var thinkingEl = document.getElementById('thinkingMsg');
+      if (thinkingEl && thinkingEl.parentNode) thinkingEl.remove();
+      chat.messages.push({ role: 'ai', content: 'Sorry, I encountered an error: ' + (e.message || 'Unknown error') + '. Try switching to Simulation Mode in Settings.' });
+      renderAll();
+    } catch(e2) { console.error('Nexus AI Fatal:', e2); }
+  });
+}
+
+async function doSendMessage() {
   if (isGenerating) return;
   var input = document.getElementById('userInput');
   var text = input.value.trim();
@@ -252,29 +267,23 @@ async function sendMessage() {
   container.appendChild(thinkingEl);
   container.scrollTop = container.scrollHeight;
 
-  try {
-    // Thinking steps
-    var thinkingSteps = ['Analyzing your question...', 'Retrieving relevant context...', 'Formulating response strategy...', 'Generating answer...'];
-    for (var i = 1; i < thinkingSteps.length; i++) {
-      await sleep(400 + Math.random() * 600);
-      updateThinkingStep(thinkingSteps[i]);
-    }
-    await sleep(300);
-
-    var response;
-    if (state.settings.provider === 'gemini' && state.settings.apiKey) {
-      response = await callGemini(chat.messages);
-    } else {
-      response = simulateResponse(text, chat.messages);
-    }
-
-    if (thinkingEl.parentNode) thinkingEl.remove();
-    chat.messages.push({ role: 'ai', content: response.text, thinking: response.thinking });
-  } catch (e) {
-    console.error('Nexus AI Error:', e);
-    if (thinkingEl.parentNode) thinkingEl.remove();
-    chat.messages.push({ role: 'ai', content: 'Sorry, I encountered an error: ' + (e.message || 'Unknown error') + '. Try switching to Simulation Mode in Settings.' });
+  // Thinking steps
+  var thinkingSteps = ['Analyzing your question...', 'Retrieving relevant context...', 'Formulating response strategy...', 'Generating answer...'];
+  for (var i = 1; i < thinkingSteps.length; i++) {
+    await sleep(400 + Math.random() * 600);
+    updateThinkingStep(thinkingSteps[i]);
   }
+  await sleep(300);
+
+  var response;
+  if (state.settings.provider === 'gemini' && state.settings.apiKey) {
+    response = await callGemini(chat.messages);
+  } else {
+    response = simulateResponse(text);
+  }
+
+  if (thinkingEl.parentNode) thinkingEl.remove();
+  chat.messages.push({ role: 'ai', content: response.text, thinking: response.thinking });
 
   isGenerating = false;
   updateSendBtn();
@@ -316,10 +325,53 @@ async function callGemini(messages) {
 
 // ===== SIMULATION MODE =====
 function simulateResponse(text) {
-  // Simple simulation that always works
+  var lower = text.toLowerCase();
+  var thinking = ['Analyzing your question...', 'Searching knowledge base...', 'Formulating response...', 'Done!'];
+  
+  // Coding questions
+  if (/code|function|python|javascript|html|css|api|sort|filter|map|reduce|component|react|node|express|database|sql|algorithm/i.test(text)) {
+    return {
+      text: "Here's a code solution:\n\n```javascript\nfunction sortByKey(arr, key, asc) {\n  asc = asc !== false;\n  return [...arr].sort((a, b) => {\n    const va = a[key] ?? '', vb = b[key] ?? '';\n    if (va < vb) return asc ? -1 : 1;\n    if (va > vb) return asc ? 1 : -1;\n    return 0;\n  });\n}\n```\n\n**How it works:**\n- Creates a shallow copy to avoid mutation\n- Uses nullish coalescing for missing keys\n- O(n log n) time complexity\n\n> 🔑 **Add a free Gemini API key** in Settings for real-time, context-aware coding help!",
+      thinking: thinking
+    };
+  }
+  
+  // Planning
+  if (/plan|schedule|launch|timeline|steps|guide|strategy|build|create|develop/i.test(text)) {
+    return {
+      text: "Here's a strategic plan:\n\n## Phase 1: Foundation (Week 1-2)\n- Define clear objectives and metrics\n- Research competitors and market\n- Identify required resources\n\n## Phase 2: Build (Week 3-6)\n- Create MVP with core features\n- Set up testing pipeline\n- Gather early feedback\n\n## Phase 3: Launch (Week 7-8)\n- Fix bugs from feedback\n- Optimize performance\n- Soft launch to limited audience\n\n> 🔑 **Add a free Gemini API key** in Settings for personalized planning with real AI!",
+      thinking: thinking
+    };
+  }
+  
+  // Explanations
+  if (/explain|what is|how does|why|define|meaning/i.test(text)) {
+    return {
+      text: "Great question! Let me break this down:\n\n## Understanding the Concept\n\nAt its core, this works through a few key principles:\n\n### 1. The Basic Idea\nThink of it as a sophisticated pattern recognition system that learns from data to identify relationships and generate useful outputs.\n\n### 2. Key Components\n- **Input Processing** — Information is broken into manageable pieces\n- **Pattern Matching** — The system finds relevant patterns from its training\n- **Output Generation** — Results are synthesized in a readable format\n\n### 3. Real-World Analogy\nImagine a master chef who has tasted thousands of dishes. When you ask for something \"spicy but sweet,\" they instantly draw on their experience — no recipe needed.\n\n> 🔑 **Add a free Gemini API key** in Settings for deep, personalized explanations!",
+      thinking: thinking
+    };
+  }
+  
+  // Creative
+  if (/write|story|poem|song|design|creative|imagine/i.test(text)) {
+    return {
+      text: "I love creative challenges! Here's something I've crafted:\n\n---\n\n**The Last Library**\n\nIn 2147, when all knowledge lived in the cloud and paper was a forgotten luxury, Maya discovered a door that shouldn't exist.\n\nCarved from actual, organic wood in a basement sealed for a century, it opened to shelves stretching into darkness — filled with books whose pages still smelled of ink and time.\n\n\"No one remembers how to read these,\" she whispered.\n\nBut someone did. And they'd left a note: *\"They deleted the past. We preserved it. Now it's your turn.\"*\n\n---\n\n> 🔑 **Add a free Gemini API key** in Settings for unlimited creative writing!",
+      thinking: ['Engaging creative mode...', 'Brainstorming unique angles...', 'Crafting compelling narrative...', 'Done!']
+    };
+  }
+  
+  // Analysis
+  if (/analyze|compare|vs|versus|pros|cons|review|evaluate/i.test(text)) {
+    return {
+      text: "Here's my analysis:\n\n## Comparison\n\n| Factor | Option A | Option B | Winner |\n|--------|----------|----------|--------|\n| Speed | ★★★★★ | ★★★ | A |\n| Cost | ★★ | ★★★★ | B |\n| Features | ★★★ | ★★★★★ | B |\n| Ease of Use | ★★★★ | ★★★ | A |\n\n### Recommendation\n- **For rapid prototyping** → Option A\n- **For production systems** → Option B\n\n> 🔑 **Add a free Gemini API key** in Settings for deep, data-driven analysis!",
+      thinking: thinking
+    };
+  }
+  
+  // Default - friendly
   return {
-    text: "Thanks for your message! I'm currently running in **Simulation Mode**.\n\nTo unlock full AI capabilities:\n1. Click the \u2699 Settings icon\n2. Select \"Google Gemini\" as provider\n3. Get a free API key from [Google AI Studio](https://aistudio.google.com/apikey)\n4. Paste it and save\n\nIn the meantime, I can still help with basic responses. What would you like to know?",
-    thinking: ['Simulation mode active', 'No API key configured', 'Ready to help with basic responses']
+    text: "Hey! I'm Nexus AI and I'm here to help.\n\nI can assist with:\n- **💻 Coding** — write, debug, explain code\n- **📋 Planning** — break down projects into steps\n- **🎨 Creative work** — stories, ideas, brainstorming\n- **📊 Analysis** — compare options, evaluate tradeoffs\n- **📚 Learning** — explain concepts clearly\n\n> 🔑 **Add a free Gemini API key** in Settings (click ⚙) for full AI power! Get yours free at [Google AI Studio](https://aistudio.google.com/apikey).\n\nWhat would you like to explore?",
+    thinking: ['Ready to help!', 'Simulation mode active', 'Add a Gemini key for full power']
   };
 }
 
