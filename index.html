@@ -434,13 +434,8 @@
     </div>
 
     <div id="inputArea">
-      <div class="input-wrapper">
-        <textarea id="userInput" placeholder="Message Nexus AI..." rows="1" onkeydown="handleKeyDown(event)" oninput="autoResize(this)"></textarea>
-        <button id="sendBtn" onclick="sendMessage()" disabled>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1A1A1A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2L15 22L11 13L2 9L22 2Z"/></svg>
-        </button>
-      </div>
-      <div class="multimedia-bar" id="mmBar">
+      
+<div class="multimedia-bar" id="mmBar">
   <input type="file" id="imageInput" accept="image/*" style="display:none" onchange="handleImageUpload(event)">
   <button class="mm-btn" onclick="document.getElementById('imageInput').click()" title="Upload image">🖼️</button>
   <button class="mm-btn" id="voiceBtn" onclick="toggleVoiceInput()" title="Voice input">🎤</button>
@@ -448,10 +443,16 @@
   <button class="mm-btn" id="speakBtn" onclick="toggleSpeech()" title="Read aloud">🔊</button>
 </div>
 <div id="imagePreview"><div class="img-wrap"><img id="previewImg" src="" alt="Preview"><button class="remove-img" onclick="clearImage()">×</button></div></div>
-<div id="cameraView"><video id="camVideo" autoplay playsinline></video><div class="cam-controls"><button class="cam-btn cam-capture" onclick="capturePhoto()">📸 Capture</button><button class="cam-btn cam-close" onclick="closeCamera()">✕ Close</button></div></div>
+<div id="cameraView"><video id="camVideo" autoplay playsinline></video><div class="cam-controls"><button class="cam-btn cam-capture" onclick="capturePhoto()">📸 Capture</button><button class="cam-btn cam-close" onclick="closeCamera()">✕ Close</button></div>
+<div class="input-wrapper">
+        <textarea id="userInput" placeholder="Message Nexus AI..." rows="1" onkeydown="handleKeyDown(event)" oninput="autoResize(this)"></textarea>
+        <button id="sendBtn" onclick="sendMessage()" disabled>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1A1A1A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2L15 22L11 13L2 9L22 2Z"/></svg>
+        </button>
+      </div>
+      </div>
 <div class="voice-hint" id="voiceHint">🎤 Listening... Speak now</div>
-<div class="input-footer">Free for everyone · No login required · <a href="https://github.com/freecash123/nexus-ai" target="_blank">Created by Fred Trent</a></div><div class="input-footer">Nexus AI remembers context within each conversation • Powered by Gemini</div>
-    </div>
+<div class="input-footer">Free for everyone · No login required · <a href="https://github.com/freecash123/nexus-ai" target="_blank">Created by Fred Trent</a></div>
   </div>
 </div>
 
