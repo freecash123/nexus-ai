@@ -232,21 +232,6 @@ function updateThinkingStep(step) {
 function sleep(ms) { return new Promise(function(r) { setTimeout(r, ms); }); }
 
 function sendMessage() {
-  doSendMessage().catch(function(e) {
-    console.error('Nexus AI Error:', e);
-    isGenerating = false;
-    updateSendBtn();
-    try {
-      var chat = ensureChat();
-      var thinkingEl = document.getElementById('thinkingMsg');
-      if (thinkingEl && thinkingEl.parentNode) thinkingEl.remove();
-      chat.messages.push({ role: 'ai', content: 'Sorry, I encountered an error: ' + (e.message || 'Unknown error') + '. Try switching to Simulation Mode in Settings.' });
-      renderAll();
-    } catch(e2) { console.error('Nexus AI Fatal:', e2); }
-  });
-}
-
-async function doSendMessage() {
   if (isGenerating) return;
   var input = document.getElementById('userInput');
   var text = input.value.trim();
@@ -267,30 +252,92 @@ async function doSendMessage() {
   container.appendChild(thinkingEl);
   container.scrollTop = container.scrollHeight;
 
-  // Thinking steps
+  // Use setTimeout chain to simulate thinking steps
   var thinkingSteps = ['Analyzing your question...', 'Retrieving relevant context...', 'Formulating response strategy...', 'Generating answer...'];
-  for (var i = 1; i < thinkingSteps.length; i++) {
-    await sleep(400 + Math.random() * 600);
-    updateThinkingStep(thinkingSteps[i]);
+  var stepIndex = 1;
+  
+  function nextStep() {
+    if (stepIndex < thinkingSteps.length) {
+      updateThinkingStep(thinkingSteps[stepIndex]);
+      stepIndex++;
+      setTimeout(nextStep, 400 + Math.random() * 600);
+    } else {
+      setTimeout(finishResponse, 300);
+    }
   }
-  await sleep(300);
-
-  var response;
-  if (state.settings.provider === 'gemini' && state.settings.apiKey) {
-    response = await callGemini(chat.messages);
-  } else {
-    response = simulateResponse(text);
+  
+  function finishResponse() {
+    try {
+      var response;
+      if (state.settings.provider === 'gemini' && state.settings.apiKey) {
+        // For async API, use fetch with then
+        callGeminiCallback(chat.messages, function(resp) {
+          showResponse(resp);
+        }, function(err) {
+          showError(err);
+        });
+      } else {
+        response = simulateResponse(text);
+        showResponse(response);
+      }
+    } catch(e) {
+      showError(e);
+    }
   }
-
-  if (thinkingEl.parentNode) thinkingEl.remove();
-  chat.messages.push({ role: 'ai', content: response.text, thinking: response.thinking });
-
-  isGenerating = false;
-  updateSendBtn();
-  renderAll();
+  
+  function showResponse(response) {
+    var el = document.getElementById('thinkingMsg');
+    if (el && el.parentNode) el.remove();
+    chat.messages.push({ role: 'ai', content: response.text, thinking: response.thinking });
+    isGenerating = false;
+    updateSendBtn();
+    renderAll();
+  }
+  
+  function showError(e) {
+    var el = document.getElementById('thinkingMsg');
+    if (el && el.parentNode) el.remove();
+    chat.messages.push({ role: 'ai', content: 'Error: ' + (e.message || 'Unknown') + '. Try Simulation Mode in Settings.' });
+    isGenerating = false;
+    updateSendBtn();
+    renderAll();
+  }
+  
+  setTimeout(nextStep, 500);
 }
 
 // ===== GEMINI API =====
+
+function callGeminiCallback(messages, onSuccess, onError) {
+  var apiKey = state.settings.apiKey;
+  var systemPrompt = "You are Nexus AI, a highly capable personal AI assistant. You think, reason, remember context, and help users with anything. Be helpful, thoughtful, warm, and thorough. Use markdown for formatting.";
+
+  var conversationHistory = messages.slice(0, -1).map(function(m) {
+    return { role: m.role === 'user' ? 'user' : 'model', parts: [{ text: m.content }] };
+  });
+  var lastMsg = messages[messages.length - 1];
+  var contents = conversationHistory.length > 0 ? conversationHistory : [];
+  contents.push({ role: 'user', parts: [{ text: lastMsg.content }] });
+
+  fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + apiKey, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: contents,
+      systemInstruction: { parts: [{ text: systemPrompt }] },
+      generationConfig: { temperature: 0.7, topK: 40, topP: 0.95, maxOutputTokens: 4096 }
+    })
+  }).then(function(resp) {
+    if (!resp.ok) return resp.json().then(function(err) { throw new Error(err.error ? err.error.message : 'API error ' + resp.status); });
+    return resp.json();
+  }).then(function(data) {
+    var text = (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0]) ? data.candidates[0].content.parts[0].text : 'Could not generate response.';
+    onSuccess({ text: text, thinking: ['Used Gemini 2.0 Flash', 'Processed messages', 'Generated response'] });
+  }).catch(function(e) {
+    onError(e);
+  });
+}
+
 async function callGemini(messages) {
   var apiKey = state.settings.apiKey;
   var systemPrompt = "You are Nexus AI, a highly capable personal AI assistant. You think, reason, remember context, and help users with anything. Be helpful, thoughtful, warm, and thorough. Use markdown for formatting. You have capabilities including: coding, analysis, creative writing, planning, research, and more. Keep responses clear and well-structured.";
@@ -376,7 +423,8 @@ function simulateResponse(text) {
 }
 
 // ===== INIT =====
-document.addEventListener('DOMContentLoaded', function() {
+window.addEventListener("unhandledrejection", function(e) { console.error("Unhandled rejection:", e.reason); });
+document.addEventListener("DOMContentLoaded"', function() {
   updateStatusBadge();
   renderAll();
   document.getElementById('userInput').focus();
