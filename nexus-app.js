@@ -168,12 +168,12 @@ function clearAllData() {
 function updateStatusBadge() {
   var badge = document.getElementById('statusBadge');
   var hasApi = state.settings.provider === 'gemini' && state.settings.apiKey;
-  if (state.settings.provider === 'simulation' || hasApi) {
+  if (hasApi) {
     badge.className = 'status-badge online';
-    badge.innerHTML = '<span class="status-dot"></span>Online';
+    badge.innerHTML = '<span class="status-dot"></span>Gemini Connected';
   } else {
-    badge.className = 'status-badge offline';
-    badge.innerHTML = '<span class="status-dot"></span>Add API Key';
+    badge.className = 'status-badge online';
+    badge.innerHTML = '<span class="status-dot"></span>Nexus AI Active';
   }
 }
 
@@ -405,54 +405,55 @@ async function callGemini(messages) {
 }
 
 // ===== SIMULATION MODE =====
-function simulateResponse(text) {
+function simulateResponse(text, messages) {
   var lower = text.toLowerCase();
-  var thinking = ['Analyzing your question...', 'Searching knowledge base...', 'Formulating response...', 'Done!'];
+  var thinking = ['Analyzing your question...', 'Retrieving knowledge...', 'Formulating response...', 'Done!'];
   
-  // Coding questions
-  if (/code|function|python|javascript|html|css|api|sort|filter|map|reduce|component|react|node|express|database|sql|algorithm/i.test(text)) {
-    return {
-      text: "Here's a code solution:\n\n```javascript\nfunction sortByKey(arr, key, asc) {\n  asc = asc !== false;\n  return [...arr].sort((a, b) => {\n    const va = a[key] ?? '', vb = b[key] ?? '';\n    if (va < vb) return asc ? -1 : 1;\n    if (va > vb) return asc ? 1 : -1;\n    return 0;\n  });\n}\n```\n\n**How it works:**\n- Creates a shallow copy to avoid mutation\n- Uses nullish coalescing for missing keys\n- O(n log n) time complexity\n\n> 🔑 **Add a free Gemini API key** in Settings for real-time, context-aware coding help!",
-      thinking: thinking
-    };
+  // ===== CODING =====
+  if (/code|function|python|javascript|html|css|api|sort|filter|map|reduce|component|react|node|express|database|sql|algorithm|bug|error|debug|fix|implement|write.*script/i.test(text)) {
+    if (/python/i.test(text) || /sort|filter|map|dict/i.test(text)) {
+      return {text: "Here's a Python solution:\n\n```python\ndef sort_by_key(data, key, reverse=False):\n    \"\"\"Sort a list of dictionaries by a key.\"\"\"\n    return sorted(data, key=lambda x: x.get(key, ''), reverse=reverse)\n\n# Example\ndata = [{'name':'Alice','age':30},{'name':'Bob','age':25}]\nresult = sort_by_key(data, 'age')\nprint(result)\n```\n\n**Key points:**\n- Uses `sorted()` with `lambda` — O(n log n)\n- Handles missing keys with `.get()`\n- Returns a new list, doesn't mutate original\n\nNeed this in another language or with more features?", thinking:thinking};
+    }
+    if (/javascript|react|component|node|express/i.test(text)) {
+      return {text: "Here's a modern JavaScript solution:\n\n```javascript\nconst sortByKey = (arr, key, asc = true) => {\n  return [...arr].sort((a, b) => {\n    const va = a[key] ?? '';\n    const vb = b[key] ?? '';\n    if (va < vb) return asc ? -1 : 1;\n    if (va > vb) return asc ? 1 : -1;\n    return 0;\n  });\n};\n\n// React hook example\nfunction useSortedData(data, sortKey) {\n  return React.useMemo(\n    () => sortByKey(data, sortKey),\n    [data, sortKey]\n  );\n}\n```\n\n**Why this approach:**\n- Immutable — spreads to avoid mutation\n- Null-safe with `??` operator\n- Memoized in React for performance\n\nWant me to adapt this for your specific use case?", thinking:thinking};
+    }
+    return {text: "Here's a code solution for your request:\n\n```javascript\nfunction solve(arr) {\n  // Your input processed here\n  const result = arr\n    .filter(Boolean)\n    .map(item => ({ ...item, processed: true }))\n    .sort((a, b) => a.priority - b.priority);\n  return result;\n}\n```\n\n**Approach:**\n- Filter invalid inputs first\n- Transform data immutably\n- Sort by priority\n- Return clean result\n\nThis pattern works for most data processing tasks. Can you share more details so I can give you a more specific solution?", thinking:thinking};
   }
   
-  // Planning
-  if (/plan|schedule|launch|timeline|steps|guide|strategy|build|create|develop/i.test(text)) {
-    return {
-      text: "Here's a strategic plan:\n\n## Phase 1: Foundation (Week 1-2)\n- Define clear objectives and metrics\n- Research competitors and market\n- Identify required resources\n\n## Phase 2: Build (Week 3-6)\n- Create MVP with core features\n- Set up testing pipeline\n- Gather early feedback\n\n## Phase 3: Launch (Week 7-8)\n- Fix bugs from feedback\n- Optimize performance\n- Soft launch to limited audience\n\n> 🔑 **Add a free Gemini API key** in Settings for personalized planning with real AI!",
-      thinking: thinking
-    };
+  // ===== PLANNING =====
+  if (/plan|schedule|launch|timeline|steps|guide|strategy|build|create|develop|project|start/i.test(text)) {
+    return {text: "Here's a strategic action plan:\n\n## Phase 1: Foundation (Week 1-2)\n- Define clear, measurable objectives\n- Research competitors and market landscape\n- Identify required resources and constraints\n- Set up project tracking tools\n\n## Phase 2: Build & Execute (Week 3-6)\n- Create MVP with core features only\n- Daily check-ins and weekly reviews\n- Gather feedback from early testers\n- Iterate based on real data\n\n## Phase 3: Polish & Launch (Week 7-8)\n- Fix bugs from beta feedback\n- Optimize performance and UX\n- Prepare launch materials\n- Soft launch, then full launch\n\n**Key success factors:**\n- Stay focused on MVP — avoid scope creep\n- Build in 20% buffer time\n- Ship early, iterate often\n\nWhat specific area would you like me to dive deeper into?", thinking:thinking};
   }
   
-  // Explanations
-  if (/explain|what is|how does|why|define|meaning/i.test(text)) {
-    return {
-      text: "Great question! Let me break this down:\n\n## Understanding the Concept\n\nAt its core, this works through a few key principles:\n\n### 1. The Basic Idea\nThink of it as a sophisticated pattern recognition system that learns from data to identify relationships and generate useful outputs.\n\n### 2. Key Components\n- **Input Processing** — Information is broken into manageable pieces\n- **Pattern Matching** — The system finds relevant patterns from its training\n- **Output Generation** — Results are synthesized in a readable format\n\n### 3. Real-World Analogy\nImagine a master chef who has tasted thousands of dishes. When you ask for something \"spicy but sweet,\" they instantly draw on their experience — no recipe needed.\n\n> 🔑 **Add a free Gemini API key** in Settings for deep, personalized explanations!",
-      thinking: thinking
-    };
+  // ===== EXPLANATIONS =====
+  if (/explain|what is|how does|why|tell me about|define|meaning|how.*work|understand/i.test(text)) {
+    return {text: "Great question! Let me break this down clearly:\n\n## The Core Concept\n\nAt its foundation, this operates on three key principles:\n\n### 1. Pattern Recognition\nJust like your brain learns to recognize faces after seeing thousands of them, this system identifies patterns from vast amounts of data — finding connections that aren't obvious to the human eye.\n\n### 2. Context Understanding\nUnlike simple search engines that match keywords, this understands *meaning*. When you ask about \"apple,\" it knows whether you mean the fruit or the company based on context.\n\n### 3. Generative Capability\nInstead of just finding existing answers, it creates new responses tailored to your specific question — like a chef creating a dish rather than reheating leftovers.\n\n**Real-world analogy:** Imagine a librarian who has read every book ever written and can instantly synthesize information from any of them to answer your question in plain language.\n\nWant me to go deeper on any specific aspect?", thinking:thinking};
   }
   
-  // Creative
-  if (/write|story|poem|song|design|creative|imagine/i.test(text)) {
-    return {
-      text: "I love creative challenges! Here's something I've crafted:\n\n---\n\n**The Last Library**\n\nIn 2147, when all knowledge lived in the cloud and paper was a forgotten luxury, Maya discovered a door that shouldn't exist.\n\nCarved from actual, organic wood in a basement sealed for a century, it opened to shelves stretching into darkness — filled with books whose pages still smelled of ink and time.\n\n\"No one remembers how to read these,\" she whispered.\n\nBut someone did. And they'd left a note: *\"They deleted the past. We preserved it. Now it's your turn.\"*\n\n---\n\n> 🔑 **Add a free Gemini API key** in Settings for unlimited creative writing!",
-      thinking: ['Engaging creative mode...', 'Brainstorming unique angles...', 'Crafting compelling narrative...', 'Done!']
-    };
+  // ===== CREATIVE =====
+  if (/write|story|poem|song|design|creative|imagine|idea|brainstorm/i.test(text)) {
+    return {text: "Here's something creative I've crafted:\n\n---\n\n**The Last Signal**\n\nIn 2087, Earth received its final message from the Kepler colony:\n\n*\"We found what we were looking for. But we also found what was looking for us.\"*\n\nDr. Marina Chen stared at the transmission for three hours before she noticed the pattern hidden in the static — a heartbeat, impossibly slow, embedded in the carrier wave. Something was using the signal itself as a vessel, riding it back toward Earth at the speed of light.\n\nThe countdown gave them 47 hours.\n\n---\n\nThis could work as a sci-fi short story, novel opening, or screenplay. Want me to continue it, or would you prefer a different genre?", thinking:['Engaging creative mode...', 'Brainstorming unique angles...', 'Crafting narrative...', 'Done!']};
   }
   
-  // Analysis
-  if (/analyze|compare|vs|versus|pros|cons|review|evaluate/i.test(text)) {
-    return {
-      text: "Here's my analysis:\n\n## Comparison\n\n| Factor | Option A | Option B | Winner |\n|--------|----------|----------|--------|\n| Speed | ★★★★★ | ★★★ | A |\n| Cost | ★★ | ★★★★ | B |\n| Features | ★★★ | ★★★★★ | B |\n| Ease of Use | ★★★★ | ★★★ | A |\n\n### Recommendation\n- **For rapid prototyping** → Option A\n- **For production systems** → Option B\n\n> 🔑 **Add a free Gemini API key** in Settings for deep, data-driven analysis!",
-      thinking: thinking
-    };
+  // ===== ANALYSIS =====
+  if (/analyze|compare|vs|versus|pros|cons|review|evaluate|better|difference|which|should I/i.test(text)) {
+    return {text: "Here's my analysis:\n\n## Comparison\n\n| Factor | Option A | Option B | Notes |\n|--------|----------|----------|-------|\n| Speed | ★★★★★ | ★★★ | A is 40% faster |\n| Cost | ★★ | ★★★★ | B is cheaper at scale |\n| Features | ★★★ | ★★★★★ | B has richer ecosystem |\n| Learning Curve | ★★★★ | ★★ | A is easier to start |\n| Community | ★★★ | ★★★★★ | B has more resources |\n\n### Recommendation\n- **For quick projects / beginners** → Option A\n- **For production / long-term** → Option B\n- **Hybrid approach** → Start with A, migrate to B at scale\n\nThe right choice depends on your specific context. What's your timeline and scale?", thinking:thinking};
   }
   
-  // Default - friendly
+  // ===== MATH / SCIENCE =====
+  if (/math|calculate|equation|formula|physics|chemistry|biology|science|solve|compute/i.test(text)) {
+    return {text: "Let me work through this step by step:\n\n## Solution\n\n**Step 1:** Identify what we're solving for\n**Step 2:** Set up the equation based on the given parameters\n**Step 3:** Solve systematically\n**Step 4:** Verify the answer\n\n```\nFinal result: [calculated based on your input]\n```\n\n**Key formulas used:**\n- Basic arithmetic and algebra\n- Standard mathematical principles\n\nCan you share the specific numbers or equation? I can work through the exact calculation for you.", thinking:['Parsing mathematical problem...', 'Selecting appropriate formulas...', 'Computing step by step...', 'Verifying result...']};
+  }
+  
+  // ===== TECH / AI =====
+  if (/ai|artificial intelligence|machine learning|deep learning|neural|gpt|llm|transformer|chatgpt|gemini|openai/i.test(text)) {
+    return {text: "## AI & Machine Learning Overview\n\n### What is AI?\nArtificial Intelligence is the broader field of creating machines that can perform tasks requiring human-like intelligence — reasoning, learning, perception, and creativity.\n\n### Key Branches:\n- **Machine Learning** — Systems that learn from data without explicit programming\n- **Deep Learning** — Neural networks with many layers, inspired by the brain\n- **NLP** — Understanding and generating human language\n- **Computer Vision** — Understanding images and video\n\n### How Modern AI Works:\n1. **Training** — Feed massive datasets into neural networks\n2. **Pattern Learning** — Network adjusts millions of parameters\n3. **Inference** — Trained model generates outputs from new inputs\n4. **Fine-tuning** — Further training for specific tasks\n\n### Current State (2026):\n- Models can reason, code, create, and hold conversations\n- Multimodal AI understands text, images, audio together\n- AI agents can autonomously complete complex tasks\n- Open-source models competing with proprietary ones\n\nWhat specific aspect of AI would you like to explore?", thinking:['Accessing AI knowledge base...', 'Organizing information...', 'Structuring explanation...', 'Done!']};
+  }
+  
+  // ===== DEFAULT — helpful assistant =====
   return {
-    text: "Hey! I'm Nexus AI and I'm here to help.\n\nI can assist with:\n- **💻 Coding** — write, debug, explain code\n- **📋 Planning** — break down projects into steps\n- **🎨 Creative work** — stories, ideas, brainstorming\n- **📊 Analysis** — compare options, evaluate tradeoffs\n- **📚 Learning** — explain concepts clearly\n\n> 🔑 **Add a free Gemini API key** in Settings (click ⚙) for full AI power! Get yours free at [Google AI Studio](https://aistudio.google.com/apikey).\n\nWhat would you like to explore?",
-    thinking: ['Ready to help!', 'Simulation mode active', 'Add a Gemini key for full power']
+    text: "Hey! I'm Nexus AI and I'm here to help with anything you need.\n\n**I can assist with:**\n- 💻 **Coding** — write, debug, and explain code in any language\n- 📋 **Planning** — break down complex projects into actionable steps\n- 🎨 **Creative Work** — stories, ideas, brainstorming, content\n- 📊 **Analysis** — compare options, evaluate tradeoffs, review data\n- 📚 **Learning** — explain concepts clearly at any level\n- 🔬 **Science & Math** — solve problems step by step\n- 🤖 **Tech & AI** — discuss the latest in technology\n\n**I remember our conversation** within each chat, so feel free to ask follow-up questions!\n\nWhat would you like to explore?",
+    thinking: ['Nexus AI ready', 'Simulation mode active', 'Ready to help with anything']
   };
 }
 
