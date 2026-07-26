@@ -54,7 +54,7 @@ function renderMessages() {
     container.appendChild(welcome);
     welcome.style.display = 'flex';
   } else {
-    if (welcome.parentNode) welcome.style.display = 'none';
+    if (welcome && welcome.parentNode) welcome.style.display = 'none';
     container.innerHTML = '';
     chat.messages.forEach(function(msg) {
       container.appendChild(createMessageEl(msg));
