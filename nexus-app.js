@@ -1,23 +1,23 @@
-// ===== STATE =====
-const STATE_KEY = 'nexus_ai_state';
-let state = loadState();
+// ===== NEXUS AI — CORE ENGINE =====
+var STATE_KEY = 'nexus_ai_state_v2';
+var state = loadState();
+var isGenerating = false;
+var currentImage = null;
+var cameraStream = null;
+var synth = window.speechSynthesis;
+var isSpeaking = false;
+var voiceRecognition = null;
 
 function defaultState() {
   return {
-    chats: { 'default': { id:'default', title:'New Conversation', messages:[], createdAt:Date.now() } },
+    chats: { 'default': { id:'default', title:'New Chat', messages:[], createdAt:Date.now() } },
     activeChat: 'default',
     settings: { provider:'simulation', apiKey:'' }
   };
 }
 
 function loadState() {
-  try {
-    const saved = localStorage.getItem(STATE_KEY);
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      if (parsed.chats && parsed.activeChat) return parsed;
-    }
-  } catch(e) {}
+  try { var s = localStorage.getItem(STATE_KEY); if (s) { var p = JSON.parse(s); if (p.chats && p.activeChat) return p; } } catch(e) {}
   return defaultState();
 }
 
@@ -25,91 +25,99 @@ function saveState() {
   try { localStorage.setItem(STATE_KEY, JSON.stringify(state)); } catch(e) {}
 }
 
-// ===== UI RENDERING =====
+// ===== RENDERING =====
 function renderAll() {
-  renderChatList();
-  renderMessages();
+  renderSidebar();
+  renderChat();
   updateSendBtn();
 }
 
-function renderChatList() {
-  const list = document.getElementById('chatList');
+function renderSidebar() {
+  var list = document.getElementById('chatList');
+  if (!list) return;
   list.innerHTML = '';
-  const chats = Object.values(state.chats).sort((a,b) => b.createdAt - a.createdAt);
-  chats.forEach(chat => {
-    const div = document.createElement('div');
-    div.className = 'chat-item' + (chat.id === state.activeChat ? ' active' : '');
-    div.innerHTML = '<span class="dot"></span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;">' + escapeHtml(chat.title) + '</span><span class="delete-chat" onclick="event.stopPropagation();deleteChat(\'' + chat.id + '\')" title="Delete">\u00d7</span>';
-    div.onclick = function() { switchChat(chat.id); };
+  Object.values(state.chats).sort(function(a,b) { return b.createdAt - a.createdAt; }).forEach(function(chat) {
+    var div = document.createElement('div');
+    var isActive = chat.id === state.activeChat;
+    div.className = 'chat-item' + (isActive ? ' active' : '');
+    div.innerHTML = '<span class="dot"></span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(chat.title) + '</span><span class="delete-chat" title="Delete">\u00d7</span>';
+    div.querySelector('.delete-chat').addEventListener('click', function(e) { e.stopPropagation(); deleteChat(chat.id); });
+    div.addEventListener('click', function() { switchToChat(chat.id); });
     list.appendChild(div);
   });
 }
 
-function renderMessages() {
-  const container = document.getElementById('messages');
-  const welcome = document.getElementById('welcomeScreen');
-  const chat = state.chats[state.activeChat];
+function renderChat() {
+  var container = document.getElementById('messages');
+  var welcome = document.getElementById('welcomeScreen');
+  var chat = state.chats[state.activeChat];
+  
+  // ALWAYS begin fresh
+  container.innerHTML = '';
+  
   if (!chat || chat.messages.length === 0) {
-    container.innerHTML = '';
-    container.appendChild(welcome);
-    welcome.style.display = 'flex';
+    // Show welcome screen
+    if (welcome) {
+      welcome.style.display = 'flex';
+      container.appendChild(welcome);
+    }
   } else {
-    if (welcome && welcome.parentNode) welcome.style.display = 'none';
-    container.innerHTML = '';
+    // Hide welcome, show messages
+    if (welcome) welcome.style.display = 'none';
     chat.messages.forEach(function(msg) {
-      container.appendChild(createMessageEl(msg));
+      container.appendChild(buildMsgEl(msg));
     });
   }
   container.scrollTop = container.scrollHeight;
 }
 
-function createMessageEl(msg) {
+function buildMsgEl(msg) {
   var div = document.createElement('div');
   div.className = 'msg ' + msg.role;
+  
   if (msg.role === 'user') {
-    div.innerHTML = '<div class="msg-avatar">U</div><div class="msg-body"><div class="msg-header">You</div><div class="msg-content">' + formatContent(msg.content) + '</div></div>';
+    var content = msg.content;
+    if (msg.image) {
+      content = '<img src="' + msg.image + '" class="msg-image" style="max-width:240px;max-height:180px;border-radius:10px;margin-bottom:8px;display:block;cursor:pointer" onclick="window.open(this.src)">\n' + content;
+    }
+    div.innerHTML = '<div class="msg-avatar">U</div><div class="msg-body"><div class="msg-header">You</div><div class="msg-content">' + fmt(content) + '</div></div>';
   } else {
     var thinkingHtml = '';
     if (msg.thinking && msg.thinking.length > 0) {
-      thinkingHtml = '<div class="thinking-block"><div class="thinking-header">Reasoning</div><div class="thinking-steps">' + msg.thinking.map(function(s) { return '<div class="thinking-step done"><span class="step-dot"></span>' + escapeHtml(s) + '</div>'; }).join('') + '</div></div>';
+      thinkingHtml = '<div class="thinking-block"><div class="thinking-header">Reasoning</div><div class="thinking-steps">' + msg.thinking.map(function(s) { return '<div class="thinking-step done"><span class="step-dot"></span>' + esc(s) + '</div>'; }).join('') + '</div></div>';
     }
-    div.innerHTML = '<div class="msg-avatar"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1A1A1A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 4.44-1.04Z"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-4.44-1.04Z"/></svg></div><div class="msg-body"><div class="msg-header">Nexus AI</div>' + thinkingHtml + '<div class="msg-content">' + formatContent(msg.content) + '</div></div>';
+    div.innerHTML = '<div class="msg-avatar"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1A1A1A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 4.44-1.04Z"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-4.44-1.04Z"/></svg></div><div class="msg-body"><div class="msg-header">Nexus AI</div>' + thinkingHtml + '<div class="msg-content">' + fmt(msg.content) + '</div></div>';
   }
   return div;
 }
 
-function formatContent(text) {
-  if (!text) return '';
-  return text
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    .replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>')
-    .replace(/`([^`]+)`/g, '<code>$1</code>')
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.+?)\*/g, '<em>$1</em>')
-    .replace(/\n/g, '<br>')
-    .replace(/^### (.+)$/gm, '<h4 style="margin:12px 0 4px;font-size:15px">$1</h4>')
-    .replace(/^## (.+)$/gm, '<h3 style="margin:14px 0 6px;font-size:17px">$1</h3>')
-    .replace(/^# (.+)$/gm, '<h2 style="margin:16px 0 8px;font-size:19px">$1</h2>')
-    .replace(/^- (.+)$/gm, '<li>$1</li>')
-    .replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>');
-}
+function esc(t) { var d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
 
-function escapeHtml(text) {
-  var div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
+function fmt(t) {
+  if (!t) return '';
+  return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/```(\w*)\n([\s\S]*?)```/g,'<pre><code>$2</code></pre>')
+    .replace(/`([^`]+)`/g,'<code>$1</code>')
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*(.+?)\*/g,'<em>$1</em>')
+    .replace(/\n/g,'<br>').replace(/^### (.+)$/gm,'<h4>$1</h4>').replace(/^## (.+)$/gm,'<h3>$1</h3>').replace(/^# (.+)$/gm,'<h2>$1</h2>')
+    .replace(/^- (.+)$/gm,'<li>$1</li>').replace(/(<li>.*<\/li>\n?)+/g,'<ul>$&</ul>');
 }
 
 // ===== CHAT MANAGEMENT =====
-function switchChat(id) {
+function switchToChat(id) {
   state.activeChat = id;
   saveState();
   renderAll();
+  // Close sidebar on mobile
+  if (window.innerWidth <= 768) {
+    document.getElementById('sidebar').classList.add('collapsed');
+    document.getElementById('sidebarOverlay').classList.remove('active');
+  }
 }
 
 function newChat() {
   var id = 'chat_' + Date.now();
-  state.chats[id] = { id: id, title: 'New Conversation', messages: [], createdAt: Date.now() };
+  state.chats[id] = { id: id, title: 'New Chat', messages: [], createdAt: Date.now() };
   state.activeChat = id;
   saveState();
   renderAll();
@@ -117,7 +125,12 @@ function newChat() {
 }
 
 function deleteChat(id) {
-  if (Object.keys(state.chats).length <= 1) { state = defaultState(); saveState(); renderAll(); return; }
+  if (Object.keys(state.chats).length <= 1) {
+    state = defaultState();
+    saveState();
+    renderAll();
+    return;
+  }
   delete state.chats[id];
   if (state.activeChat === id) state.activeChat = Object.keys(state.chats)[0];
   saveState();
@@ -125,82 +138,10 @@ function deleteChat(id) {
 }
 
 function toggleSidebar() {
-  var sidebar = document.getElementById('sidebar');
-  var overlay = document.getElementById('sidebarOverlay');
-  sidebar.classList.toggle('collapsed');
-  if (window.innerWidth <= 768) overlay.classList.toggle('active');
-}
-
-// ===== SETTINGS =====
-function openSettings() {
-  document.getElementById('settingsModal').style.display = 'flex';
-  document.getElementById('apiProvider').value = state.settings.provider;
-  document.getElementById('apiKey').value = state.settings.apiKey || '';
-  onProviderChange();
-}
-
-function closeSettings() {
-  document.getElementById('settingsModal').style.display = 'none';
-}
-
-function onProviderChange() {
-  var provider = document.getElementById('apiProvider').value;
-  document.getElementById('geminiSettings').style.display = provider === 'gemini' ? 'block' : 'none';
-}
-
-function saveSettings() {
-  state.settings.provider = document.getElementById('apiProvider').value;
-  state.settings.apiKey = document.getElementById('apiKey').value.trim();
-  saveState();
-  closeSettings();
-  updateStatusBadge();
-}
-
-function clearAllData() {
-  if (confirm('Delete all conversations? This cannot be undone.')) {
-    state = defaultState();
-    saveState();
-    renderAll();
-    closeSettings();
-  }
-}
-
-function updateStatusBadge() {
-  var badge = document.getElementById('statusBadge');
-  var hasApi = state.settings.provider === 'gemini' && state.settings.apiKey;
-  if (hasApi) {
-    badge.className = 'status-badge online';
-    badge.innerHTML = '<span class="status-dot"></span>Gemini Connected';
-  } else {
-    badge.className = 'status-badge online';
-    badge.innerHTML = '<span class="status-dot"></span>Nexus AI Active';
-  }
-}
-
-// ===== MESSAGING =====
-var isGenerating = false;
-
-function updateSendBtn() {
-  var input = document.getElementById('userInput');
-  var btn = document.getElementById('sendBtn');
-  if (input.value.trim() && !isGenerating) { btn.classList.add('active'); btn.disabled = false; }
-  else if (isGenerating) { btn.disabled = true; btn.classList.remove('active'); }
-  else { btn.disabled = true; btn.classList.remove('active'); }
-}
-
-function autoResize(el) {
-  el.style.height = 'auto';
-  el.style.height = Math.min(el.scrollHeight, 150) + 'px';
-  updateSendBtn();
-}
-
-function handleKeyDown(e) {
-  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
-}
-
-function sendQuick(text) {
-  document.getElementById('userInput').value = text;
-  sendMessage();
+  var s = document.getElementById('sidebar');
+  var o = document.getElementById('sidebarOverlay');
+  s.classList.toggle('collapsed');
+  if (window.innerWidth <= 768) o.classList.toggle('active');
 }
 
 function ensureChat() {
@@ -209,416 +150,358 @@ function ensureChat() {
   return chat;
 }
 
-function createThinkingEl() {
-  var div = document.createElement('div');
-  div.className = 'msg ai';
-  div.id = 'thinkingMsg';
-  div.innerHTML = '<div class="msg-avatar"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1A1A1A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 4.44-1.04Z"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-4.44-1.04Z"/></svg></div><div class="msg-body"><div class="msg-header">Nexus AI \u00b7 thinking</div><div class="thinking-block"><div class="thinking-header"><div class="thinking-spinner"></div>Reasoning through your request</div><div class="thinking-steps" id="thinkingSteps"><div class="thinking-step active"><span class="step-dot"></span>Analyzing your question...</div></div></div></div>';
-  return div;
+// ===== SETTINGS =====
+function openSettings() {
+  document.getElementById('settingsModal').style.display = 'flex';
+  document.getElementById('apiProvider').value = state.settings.provider;
+  document.getElementById('apiKey').value = state.settings.apiKey || '';
+  document.getElementById('geminiSettings').style.display = state.settings.provider === 'gemini' ? 'block' : 'none';
 }
 
-function updateThinkingStep(step) {
-  var steps = document.getElementById('thinkingSteps');
-  if (steps) {
-    var current = steps.querySelector('.thinking-step.active');
-    if (current) current.className = 'thinking-step done';
-    var newStep = document.createElement('div');
-    newStep.className = 'thinking-step active';
-    newStep.innerHTML = '<span class="step-dot"></span>' + escapeHtml(step);
-    steps.appendChild(newStep);
-  }
+function closeSettings() { document.getElementById('settingsModal').style.display = 'none'; }
+
+function saveSettings() {
+  state.settings.provider = document.getElementById('apiProvider').value;
+  state.settings.apiKey = document.getElementById('apiKey').value.trim();
+  saveState();
+  closeSettings();
+  updateStatus();
 }
 
-function sleep(ms) { return new Promise(function(r) { setTimeout(r, ms); }); }
+function clearAllData() {
+  if (confirm('Delete all conversations?')) { state = defaultState(); saveState(); renderAll(); closeSettings(); }
+}
 
+function updateStatus() {
+  var b = document.getElementById('statusBadge');
+  b.className = 'status-badge online';
+  b.innerHTML = '<span class="status-dot"></span>Active';
+}
+
+// ===== INPUT =====
+function updateSendBtn() {
+  var inp = document.getElementById('userInput');
+  var btn = document.getElementById('sendBtn');
+  if (inp && inp.value.trim() && !isGenerating) { btn.classList.add('active'); btn.disabled = false; }
+  else { btn.disabled = true; btn.classList.remove('active'); }
+}
+
+function autoResize(el) { el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 150) + 'px'; updateSendBtn(); }
+
+function handleKeyDown(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }
+
+function sendQuick(text) { document.getElementById('userInput').value = text; sendMessage(); }
+
+// ===== MESSAGING =====
 function sendMessage() {
   if (isGenerating) return;
-  
-  // Check for attached image
-  var hasImage = !!currentImage;
-  if (hasImage) {
-    // Clear image preview after sending
-    setTimeout(function() { clearImage(); }, 100);
-  }
-  var input = document.getElementById('userInput');
-  var text = input.value.trim();
-  if (!text) return;
+  var inp = document.getElementById('userInput');
+  var text = inp.value.trim();
+  if (!text && !currentImage) return;
   
   var chat = ensureChat();
-  chat.messages.push({ role: 'user', content: text });
-  if (chat.messages.length === 1) { chat.title = text.length > 40 ? text.substring(0,40) + '...' : text; }
   
-  input.value = '';
-  input.style.height = 'auto';
+  // Save message with optional image
+  var msg = { role: 'user', content: text || '[Image]' };
+  if (currentImage) { msg.image = currentImage; }
+  chat.messages.push(msg);
+  
+  if (chat.messages.length === 1) { chat.title = text ? (text.length > 40 ? text.substring(0,40) + '...' : text) : 'Image Chat'; }
+  
+  inp.value = '';
+  inp.style.height = 'auto';
+  currentImage = null;
+  hideImagePreview();
+  
   isGenerating = true;
   updateSendBtn();
+  saveState();
   renderAll();
 
+  // Show thinking
   var container = document.getElementById('messages');
-  var thinkingEl = createThinkingEl();
-  container.appendChild(thinkingEl);
+  var thinkDiv = document.createElement('div');
+  thinkDiv.className = 'msg ai';
+  thinkDiv.id = 'thinkingMsg';
+  thinkDiv.innerHTML = '<div class="msg-avatar"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1A1A1A" stroke-width="2.5"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 4.44-1.04Z"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-4.44-1.04Z"/></svg></div><div class="msg-body"><div class="msg-header">Nexus AI</div><div class="thinking-block"><div class="thinking-header"><div class="thinking-spinner"></div>Thinking...</div></div></div>';
+  container.appendChild(thinkDiv);
   container.scrollTop = container.scrollHeight;
 
-  // Use setTimeout chain instead of async/await for max compatibility
-  var steps = ['Analyzing your question...', 'Retrieving context...', 'Formulating strategy...', 'Generating answer...'];
-  var stepIdx = 1;
-  
-  function next() {
-    if (stepIdx < steps.length) {
-      updateThinkingStep(steps[stepIdx]);
-      stepIdx++;
-      setTimeout(next, 500);
-    } else {
-      setTimeout(done, 400);
-    }
-  }
-  
-  function done() {
+  // Use setTimeout chain for compatibility
+  setTimeout(function() {
     try {
       var resp;
       if (state.settings.provider === 'gemini' && state.settings.apiKey) {
-        callGeminiWithCallback(chat.messages, show, fail);
+        callGeminiAPI(chat.messages, function(r) { finish(r); }, function(e) { fail(e); });
         return;
       } else {
-        resp = simulateResponse(text);
+        resp = simulateResponse(text, chat.messages);
       }
-      show(resp);
-    } catch(e) {
-      fail(e);
-    }
-  }
-  
-  function show(resp) {
+      finish(resp);
+    } catch(e) { fail(e); }
+  }, 600);
+
+  function finish(resp) {
     var el = document.getElementById('thinkingMsg');
     if (el && el.parentNode) el.remove();
     chat.messages.push({ role: 'ai', content: resp.text, thinking: resp.thinking });
     isGenerating = false;
+    saveState();
     updateSendBtn();
     renderAll();
+    // Auto-speak if enabled
+    if (document.getElementById('speakBtn').classList.contains('speaking')) {
+      speakText(resp.text);
+    }
   }
-  
+
   function fail(e) {
-    console.error('Nexus Error:', e);
+    console.error(e);
     var el = document.getElementById('thinkingMsg');
     if (el && el.parentNode) el.remove();
-    chat.messages.push({ role: 'ai', content: 'Error: ' + (e.message || 'Unknown') });
+    chat.messages.push({ role: 'ai', content: 'Error: ' + (e.message || 'Something went wrong') });
     isGenerating = false;
+    saveState();
     updateSendBtn();
     renderAll();
   }
-  
-  setTimeout(next, 500);
-}
-
-// Keep old async versions for reference but they won't be called directly
-async function doSendMessage() {
-  // Legacy - not used
-}
-
-async function callGemini(messages) {
-  // Legacy - use callGeminiWithCallback instead
-  var apiKey = state.settings.apiKey;
-  var systemPrompt = "You are Nexus AI, a personal AI assistant. Be helpful, thoughtful, warm, thorough. Use markdown.";
-  var history = messages.slice(0,-1).map(function(m){return{role:m.role==='user'?'user':'model',parts:[{text:m.content}]};});
-  var last = messages[messages.length-1];
-  var contents = history.length>0?history:[];
-  contents.push({role:'user',parts:[{text:last.content}]});
-  var resp = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key='+apiKey,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:contents,systemInstruction:{parts:[{text:systemPrompt}]},generationConfig:{temperature:0.7,topK:40,topP:0.95,maxOutputTokens:4096}})});
-  if(!resp.ok){var err=await resp.json();throw new Error(err.error?err.error.message:'API error');}
-  var data=await resp.json();
-  var text=(data.candidates&&data.candidates[0]&&data.candidates[0].content&&data.candidates[0].content.parts&&data.candidates[0].content.parts[0])?data.candidates[0].content.parts[0].text:'No response';
-  return{text:text,thinking:['Used Gemini 2.0 Flash','Processed messages','Generated']};
-}
-
-function callGeminiWithCallback(messages, onSuccess, onError) {
-  var apiKey = state.settings.apiKey;
-  var systemPrompt = "You are Nexus AI, a personal AI assistant. Be helpful, thoughtful, warm, thorough. Use markdown.";
-  var history = messages.slice(0,-1).map(function(m){return{role:m.role==='user'?'user':'model',parts:[{text:m.content}]};});
-  var last = messages[messages.length-1];
-  var contents = history.length>0?history:[];
-  contents.push({role:'user',parts:[{text:last.content}]});
-  
-  fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key='+apiKey,{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({contents:contents,systemInstruction:{parts:[{text:systemPrompt}]},generationConfig:{temperature:0.7,topK:40,topP:0.95,maxOutputTokens:4096}})
-  }).then(function(r){if(!r.ok)return r.json().then(function(e){throw new Error(e.error?e.error.message:'API error '+r.status)});return r.json()})
-  .then(function(d){var t=(d.candidates&&d.candidates[0]&&d.candidates[0].content&&d.candidates[0].content.parts&&d.candidates[0].content.parts[0])?d.candidates[0].content.parts[0].text:'No response';onSuccess({text:t,thinking:['Gemini 2.0 Flash','Processed','Generated']});})
-  .catch(function(e){onError(e);});
 }
 
 // ===== GEMINI API =====
-
-function callGeminiCallback(messages, onSuccess, onError) {
-  var apiKey = state.settings.apiKey;
-  var systemPrompt = "You are Nexus AI, a highly capable personal AI assistant. You think, reason, remember context, and help users with anything. Be helpful, thoughtful, warm, and thorough. Use markdown for formatting.";
-
-  var conversationHistory = messages.slice(0, -1).map(function(m) {
+function callGeminiAPI(messages, onOk, onErr) {
+  var key = state.settings.apiKey;
+  var sysPrompt = "You are Nexus AI, a powerful personal assistant. Be helpful, warm, thorough. Use markdown. You can see and describe images, write code, analyze data, and have natural conversations.";
+  
+  var history = messages.slice(0,-1).map(function(m) {
     return { role: m.role === 'user' ? 'user' : 'model', parts: [{ text: m.content }] };
   });
-  var lastMsg = messages[messages.length - 1];
-  var contents = conversationHistory.length > 0 ? conversationHistory : [];
-  contents.push({ role: 'user', parts: [{ text: lastMsg.content }] });
-
-  fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + apiKey, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents: contents,
-      systemInstruction: { parts: [{ text: systemPrompt }] },
-      generationConfig: { temperature: 0.7, topK: 40, topP: 0.95, maxOutputTokens: 4096 }
-    })
-  }).then(function(resp) {
-    if (!resp.ok) return resp.json().then(function(err) { throw new Error(err.error ? err.error.message : 'API error ' + resp.status); });
-    return resp.json();
-  }).then(function(data) {
-    var text = (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0]) ? data.candidates[0].content.parts[0].text : 'Could not generate response.';
-    onSuccess({ text: text, thinking: ['Used Gemini 2.0 Flash', 'Processed messages', 'Generated response'] });
-  }).catch(function(e) {
-    onError(e);
-  });
-}
-
-async function callGemini(messages) {
-  var apiKey = state.settings.apiKey;
-  var systemPrompt = "You are Nexus AI, a highly capable personal AI assistant. You think, reason, remember context, and help users with anything. Be helpful, thoughtful, warm, and thorough. Use markdown for formatting. You have capabilities including: coding, analysis, creative writing, planning, research, and more. Keep responses clear and well-structured.";
-
-  var conversationHistory = messages.slice(0, -1).map(function(m) {
-    return { role: m.role === 'user' ? 'user' : 'model', parts: [{ text: m.content }] };
-  });
-  var lastMsg = messages[messages.length - 1];
-  var contents = conversationHistory.length > 0 ? conversationHistory : [];
-  contents.push({ role: 'user', parts: [{ text: lastMsg.content }] });
-
-  var resp = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + apiKey, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents: contents,
-      systemInstruction: { parts: [{ text: systemPrompt }] },
-      generationConfig: { temperature: 0.7, topK: 40, topP: 0.95, maxOutputTokens: 4096 }
-    })
-  });
-
-  if (!resp.ok) {
-    var err = await resp.json();
-    throw new Error(err.error ? err.error.message : 'API request failed (status ' + resp.status + ')');
+  var last = messages[messages.length-1];
+  var parts = [{ text: last.content }];
+  
+  // If last user message has an image, include it
+  if (last.image && last.image.startsWith('data:image')) {
+    var base64 = last.image.split(',')[1];
+    var mime = last.image.match(/data:(image\/\w+);/);
+    parts.push({ inline_data: { mime_type: mime ? mime[1] : 'image/jpeg', data: base64 } });
   }
+  
+  var contents = history.length > 0 ? history : [];
+  contents.push({ role: 'user', parts: parts });
 
-  var data = await resp.json();
-  var text = (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0]) ? data.candidates[0].content.parts[0].text : 'I had trouble generating a response. Please try again.';
-
-  return { text: text, thinking: ['Used Gemini 2.0 Flash', 'Processed ' + messages.length + ' message(s) of context', 'Generated response'] };
+  fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + key, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: contents,
+      systemInstruction: { parts: [{ text: sysPrompt }] },
+      generationConfig: { temperature: 0.7, topK: 40, topP: 0.95, maxOutputTokens: 4096 }
+    })
+  }).then(function(r) { if (!r.ok) return r.json().then(function(e) { throw new Error(e.error ? e.error.message : 'API error'); }); return r.json(); })
+  .then(function(d) {
+    var t = (d.candidates && d.candidates[0] && d.candidates[0].content && d.candidates[0].content.parts && d.candidates[0].content.parts[0]) ? d.candidates[0].content.parts[0].text : 'No response generated.';
+    onOk({ text: t, thinking: ['Gemini 2.0 Flash', 'Analyzed context', 'Generated response'] });
+  }).catch(function(e) { onErr(e); });
 }
 
-// ===== SIMULATION MODE =====
+// ===== SIMULATION =====
 function simulateResponse(text, messages) {
-  // Check if there's an image attached
-  var imgEl = document.getElementById('previewImg');
-  if (imgEl && imgEl.src && imgEl.src.startsWith('data:image')) {
+  var lower = text.toLowerCase();
+  
+  // Image response
+  var lastMsg = messages[messages.length-1];
+  if (lastMsg.image) {
     return {
-      text: "I can see you've shared an image! \ud83d\udcf7\n\nIn **Simulation Mode** I can't analyze images directly, but here's what I can tell you:\n\n- The image appears to be uploaded successfully\n- It's encoded as a data URL (ready for processing)\n- With a **Gemini API key** (free from Google AI Studio), I can describe, analyze, and answer questions about any image\n\n> \ud83d\udd11 **Add a free Gemini API key** in Settings (\u2699) for real image analysis, object recognition, text extraction, and visual Q&A!\n\nWhat would you like to know about the image?",
-      thinking: ['Image detected', 'Analyzing image data...', 'Simulation mode — add API key for full analysis', 'Ready to help']
+      text: "I can see you've shared an image! \n\nTo analyze images in detail (describe content, read text, identify objects), add a free Gemini API key in Settings (⚙). Get yours free at https://aistudio.google.com/apikey\n\nIn the meantime, I can still chat about anything!",
+      thinking: ['Image detected', 'Add Gemini API key for full image analysis', 'Ready for text chat']
     };
   }
   
-  var lower = text.toLowerCase();
-  var lower = text.toLowerCase();
-  var thinking = ['Analyzing your question...', 'Retrieving knowledge...', 'Formulating response...', 'Done!'];
-  
-  // ===== 1. ANALYSIS — check FIRST (before coding, since "compare Python vs JS" should be analysis not code) =====
-  if (/\banalyze\b|\bcompare\b|\bvs\b|\bversus\b|\bpros?\b|\bcons?\b|\breview\b|\bevaluate\b|\bbetter\b|\bdifference\b|\bwhich\b.*\bbetter\b|\bshould I\b|\bchoice\b|\bdecide\b/i.test(text)) {
-    return {text: "Here's a balanced comparison:\n\n## Comparison Analysis\n\n| Factor | Option A | Option B | Notes |\n|--------|----------|----------|-------|\n| Speed | \u2605\u2605\u2605\u2605\u2605 | \u2605\u2605\u2605 | A is faster |\n| Cost | \u2605\u2605 | \u2605\u2605\u2605\u2605 | B is more affordable |\n| Features | \u2605\u2605\u2605 | \u2605\u2605\u2605\u2605\u2605 | B has more |\n| Ease of Use | \u2605\u2605\u2605\u2605 | \u2605\u2605\u2605 | A is simpler |\n| Community | \u2605\u2605\u2605 | \u2605\u2605\u2605\u2605\u2605 | B is larger |\n\n### Key Differences\n- **Option A** excels at speed and simplicity\n- **Option B** wins on features and ecosystem\n\n### Recommendation\n- For quick projects: **Option A**\n- For production systems: **Option B**\n- The best choice depends on your specific needs — timeline, team size, and project requirements\n\nWhat's your specific use case? I can give you a more targeted recommendation.", thinking:thinking};
+  // Analysis first (before coding)
+  if (/\banalyze\b|\bcompare\b|\bvs\b|\bversus\b|\bpros?\b|\bcons?\b|\breview\b|\bevaluate\b|\bbetter\b|\bdifference\b|\bwhich\b|\bshould I\b/i.test(lower)) {
+    return {
+      text: "Here's my comparison analysis:\n\n## Comparison\n\n| Factor | Option A | Option B | Notes |\n|--------|----------|----------|-------|\n| Speed | ★★★★★ | ★★★ | A is faster |\n| Cost | ★★ | ★★★★ | B is cheaper |\n| Features | ★★★ | ★★★★★ | B has more |\n| Ease of Use | ★★★★ | ★★★ | A is simpler |\n| Community | ★★★ | ★★★★★ | B is larger |\n\n### Recommendation\n- For quick projects → **Option A**\n- For production → **Option B**\n\nWhat's your specific use case?",
+      thinking: ['Comparing options...', 'Evaluating factors...', 'Analysis ready']
+    };
   }
   
-  // ===== 2. CODING =====
-  if (/\bcode\b|\bfunction\b|python|javascript|\bhtml\b|\bcss\b|\bapi\b|\bsort\b|\bfilter\b|\bmap\b|\breduce\b|\bcomponent\b|react|node|express|\bdatabase\b|\bsql\b|\balgorithm\b|\bbug\b|\berror\b|\bdebug\b|\bfix\b|\bimplement\b|write.*script|\bprogram\b|\bcompile\b|\bsyntax\b/i.test(text)) {
-    if (/python|django|flask|pandas|numpy/i.test(text)) {
-      return {text: "Here's a Python solution:\n\n```python\ndef process_data(data, sort_key='name'):\n    \"\"\"Process and sort data safely.\"\"\"\n    # Filter out invalid entries\n    valid = [d for d in data if d.get(sort_key)]\n    # Sort by key with missing key handling\n    return sorted(valid, key=lambda x: x.get(sort_key, ''))\n\n# Example usage\nitems = [\n    {'name': 'Charlie', 'score': 85},\n    {'name': 'Alice', 'score': 92},\n    {'name': 'Bob', 'score': 78}\n]\nresult = process_data(items, 'score')\nprint(result)\n```\n\n**Why this works:**\n- Uses list comprehension for clean filtering\n- `sorted()` with `lambda` — O(n log n)\n- `dict.get()` handles missing keys gracefully\n- Immutable — returns new list\n\nNeed this adapted for your specific use case?", thinking:thinking};
+  // Coding
+  if (/\bcode\b|\bfunction\b|python|javascript|\bhtml\b|\bcss\b|react|node|express|\bapi\b|\bsort\b|\bfilter\b|\bmap\b|\balgorithm\b|\bbug\b|\bdebug\b|\bfix\b|\bimplement\b/i.test(lower)) {
+    if (/python|django|flask|pandas/i.test(lower)) {
+      return { text: "Here's a Python solution:\n\n```python\ndef process_data(items, key='name'):\n    \"\"\"Sort and filter data safely.\"\"\"\n    valid = [d for d in items if d.get(key)]\n    return sorted(valid, key=lambda x: x.get(key, ''))\n\n# Example\ndata = [{'name':'Zara','score':92},{'name':'Alex','score':78}]\nresult = process_data(data, 'score')\nprint(result)\n```\n\n**Key points:**\n- List comprehension for filtering\n- O(n log n) sorting with lambda\n- Safe .get() for missing keys", thinking: ['Python solution', 'Best practices applied', 'Ready'] };
     }
-    if (/javascript|react|node|express|component|jsx|npm|webpack|vite/i.test(text)) {
-      return {text: "Here's a modern JavaScript/React approach:\n\n```javascript\n// Utility: Sort array of objects by key\nconst sortBy = (arr, key, asc = true) => {\n  return [...arr].sort((a, b) => {\n    const va = a[key] ?? '';\n    const vb = b[key] ?? '';\n    if (va < vb) return asc ? -1 : 1;\n    if (va > vb) return asc ? 1 : -1;\n    return 0;\n  });\n};\n\n// React Component\nfunction DataTable({ data }) {\n  const [sortKey, setSortKey] = React.useState('name');\n  const [ascending, setAscending] = React.useState(true);\n  \n  const sorted = React.useMemo(\n    () => sortBy(data, sortKey, ascending),\n    [data, sortKey, ascending]\n  );\n  \n  return (\n    <table>\n      <thead>\n        <tr>\n          <th onClick={() => { setSortKey('name'); setAscending(sortKey === 'name' ? !ascending : true); }}>\n            Name {sortKey === 'name' ? (ascending ? '\u2191' : '\u2193') : ''}\n          </th>\n        </tr>\n      </thead>\n      <tbody>\n        {sorted.map(item => (\n          <tr key={item.id}><td>{item.name}</td></tr>\n        ))}\n      </tbody>\n    </table>\n  );\n}\n```\n\n**Key patterns:**\n- Immutable spread to avoid mutation\n- `useMemo` for performance\n- Null-safe with `??`\n- Click-to-sort headers\n\nWant me to adapt this for your framework?", thinking:thinking};
+    if (/javascript|react|node|express|jsx/i.test(lower)) {
+      return { text: "Here's a JavaScript solution:\n\n```javascript\nconst sortByKey = (arr, key, asc = true) => {\n  return [...arr].sort((a, b) => {\n    const va = a[key] ?? '';\n    const vb = b[key] ?? '';\n    if (va < vb) return asc ? -1 : 1;\n    if (va > vb) return asc ? 1 : -1;\n    return 0;\n  });\n};\n\n// React hook\nfunction useSorted(data, key) {\n  return useMemo(() => sortByKey(data, key), [data, key]);\n}\n```\n\n**Why:**\n- Immutable (spreads, no mutation)\n- Null-safe (?? operator)\n- Memoized in React", thinking: ['JS solution', 'Modern patterns', 'Ready'] };
     }
-    return {text: "Here's a solution for your coding request:\n\n```javascript\n// Clean, modular approach\nfunction solve(input) {\n  // 1. Validate input\n  if (!input || !Array.isArray(input)) {\n    throw new Error('Expected an array');\n  }\n  \n  // 2. Process data\n  const result = input\n    .filter(item => item != null)\n    .map(item => transform(item))\n    .sort((a, b) => a.priority - b.priority);\n  \n  return result;\n}\n\nfunction transform(item) {\n  return { ...item, processed: true, timestamp: Date.now() };\n}\n```\n\n**Approach:**\n- Validate inputs first\n- Chain operations (filter \u2192 map \u2192 sort)\n- Keep functions small and focused\n- Immutable patterns throughout\n\nWhat language or framework are you using? I can tailor this specifically.", thinking:thinking};
+    return { text: "Here's a clean solution:\n\n```javascript\nfunction solve(input) {\n  if (!input || !Array.isArray(input)) {\n    throw new Error('Expected array');\n  }\n  return input\n    .filter(Boolean)\n    .map(item => ({ ...item, processed: true }))\n    .sort((a, b) => (a.priority || 0) - (b.priority || 0));\n}\n```\n\n**Approach:** Validate → Filter → Transform → Sort\n\nWhat language are you using?", thinking: ['Code solution', 'Clean architecture', 'Ready'] };
   }
   
-  // ===== 3. MATH / SCIENCE =====
-  if (/\bmath\b|\bcalculate\b|\bequation\b|\bformula\b|physics|chemistry|biology|\bscience\b|\bsolve\b|\bcompute\b|\bderivative\b|\bintegral\b|\balgebra\b|\bprobability\b|\bstatistics\b/i.test(text)) {
-    return {text: "Let me work through this step by step:\n\n## Step-by-Step Solution\n\n**Given:** Your problem statement\n\n**Step 1:** Identify what we're solving for\n**Step 2:** Set up the appropriate formula/equation\n**Step 3:** Plug in the values\n**Step 4:** Simplify and solve\n**Step 5:** Verify the answer\n\n```\nFinal Answer: [calculated from your specific numbers]\n```\n\n**Key concepts applied:**\n- Standard mathematical principles\n- Logical problem decomposition\n\nCan you share the specific numbers, equation, or problem? I'll work through the exact calculation for you.", thinking:['Parsing the problem...', 'Selecting formulas...', 'Computing step by step...', 'Verifying...']};
+  // Math/Science
+  if (/\bmath\b|\bcalculate\b|\bequation\b|\bformula\b|physics|chemistry|\bscience\b|\bsolve\b|\bcompute\b/i.test(lower)) {
+    return { text: "Let me work through this:\n\n## Step-by-Step Solution\n\n**Step 1:** Identify the problem\n**Step 2:** Set up the formula\n**Step 3:** Plug in values\n**Step 4:** Solve\n**Step 5:** Verify\n\n```\nAnswer: [calculated from your input]\n```\n\nShare the specific numbers and I'll compute the exact answer!", thinking: ['Math mode', 'Setting up equations', 'Ready'] };
   }
   
-  // ===== 4. TECH / AI =====
-  if (/\bai\b|artificial intelligence|machine learning|deep learning|neural|\bllm\b|transformer|chatgpt|gemini|openai|\bgpt\b|claude|anthropic|\bcrypto\b|blockchain|web3|\biot\b|\bvr\b|\bar\b|quantum/i.test(text)) {
-    return {text: "## AI & Technology Overview\n\n### Current State (2026)\nThe AI landscape has evolved rapidly. Here's where things stand:\n\n**Large Language Models:**\n- Models can now reason, code, create, and hold nuanced conversations\n- Multimodal AI understands text, images, audio, and video together\n- Context windows have expanded to millions of tokens\n- Open-source models compete with proprietary systems\n\n**Key Trends:**\n- **AI Agents** — Autonomous systems that complete complex, multi-step tasks\n- **AI-First Development** — Code generation and debugging as standard practice\n- **On-Device AI** — Powerful models running locally on phones and laptops\n- **Multimodal Fusion** — Seamless combination of text, vision, and audio\n\n**What This Means:**\nAI is becoming an operating system for knowledge work — not just a chatbot, but a reasoning engine that helps with everything from coding to creative work.\n\nWhat specific area of tech or AI would you like to explore deeper?", thinking:['Accessing knowledge base...', 'Organizing latest developments...', 'Structuring clear explanation...', 'Done!']};
+  // Tech/AI
+  if (/\bai\b|artificial intelligence|machine learning|deep learning|neural|llm|transformer|chatgpt|gemini|openai|gpt/i.test(lower)) {
+    return { text: "## AI Overview (2026)\n\n**Where we are:**\n- AI models can reason, code, create, and hold deep conversations\n- Multimodal AI understands text, images, audio, and video together\n- AI agents autonomously complete complex multi-step tasks\n- Context windows have expanded to millions of tokens\n\n**Key trends:**\n- **AI Agents** — Autonomous task completion\n- **On-Device AI** — Models running locally on phones\n- **Multimodal** — Combined text, vision, and audio\n- **Open Source** — Competing with proprietary systems\n\nWhat area interests you most?", thinking: ['AI knowledge', 'Latest trends', 'Ready'] };
   }
   
-  // ===== 5. PLANNING =====
-  if (/\bplan\b|\bschedule\b|\blaunch\b|\btimeline\b|\bsteps\b|\bguide\b|\bstrategy\b|\bbuild\b|\bcreate\b|\bdevelop\b|\bproject\b|\bstart\b.*\bproject\b|\bgoal\b|\bobjective\b|\brainstorm\b/i.test(text)) {
-    return {text: "Here's a structured action plan:\n\n## Strategic Plan\n\n### Phase 1: Foundation (Week 1-2)\n- Define clear, measurable objectives\n- Research the landscape and competitors\n- Identify required resources and constraints\n- Set up tracking and communication tools\n\n### Phase 2: Build & Execute (Week 3-6)\n- Create MVP with core features only\n- Daily check-ins, weekly reviews\n- Gather feedback from 5-10 early testers\n- Iterate based on real data\n\n### Phase 3: Polish & Launch (Week 7-8)\n- Fix issues from beta feedback\n- Optimize performance and user experience\n- Prepare launch materials and documentation\n- Soft launch \u2192 gather data \u2192 full launch\n\n### Success Factors\n- **Stay focused** — avoid scope creep, MVP first\n- **Build buffer** — add 20% to time estimates\n- **Ship early** — done is better than perfect\n\nWhat's your specific project? I can tailor this plan to your exact needs.", thinking:thinking};
+  // Planning
+  if (/\bplan\b|\bschedule\b|\blaunch\b|\btimeline\b|\bstrategy\b|\bproject\b|\bgoal\b|\bstart\b.*\bproject\b/i.test(lower)) {
+    return { text: "## Strategic Plan\n\n### Phase 1: Foundation (Week 1-2)\n- Define clear objectives\n- Research and gather requirements\n- Identify resources needed\n\n### Phase 2: Build (Week 3-6)\n- Create MVP with core features\n- Get feedback from testers\n- Iterate based on real data\n\n### Phase 3: Launch (Week 7-8)\n- Fix issues from feedback\n- Polish and optimize\n- Launch and monitor\n\n**Success tip:** Stay focused on MVP. Ship early!\n\nWhat's your specific project?", thinking: ['Planning mode', 'Structuring timeline', 'Ready'] };
   }
   
-  // ===== 6. EXPLANATIONS =====
-  if (/\bexplain\b|what is|how does|\bwhy\b|tell me about|\bdefine\b|\bmeaning\b|how.*work|\bunderstand\b|\blearn\b/i.test(text)) {
-    return {text: "Great question! Let me break this down:\n\n## Understanding the Concept\n\nAt its core, this works on three principles:\n\n### 1. Pattern Recognition\nJust like your brain recognizes faces after seeing thousands, this system identifies patterns in data — finding connections invisible to the human eye.\n\n### 2. Context Awareness\nUnlike simple keyword matching, it understands *meaning*. When you mention \"apple,\" it knows from context whether you mean the fruit or the company.\n\n### 3. Generative Capability\nInstead of retrieving existing answers, it creates new responses tailored to you — like a chef creating a dish rather than reheating leftovers.\n\n**Simple analogy:** Imagine a librarian who's read every book ever written and can instantly synthesize information from any of them into plain language.\n\nWant me to go deeper on any specific aspect?", thinking:thinking};
+  // Explanations
+  if (/\bexplain\b|what is|how does|\bwhy\b|tell me about|\bdefine\b|\bmeaning\b|how.*work|\bunderstand\b/i.test(lower)) {
+    return { text: "Great question! Let me break this down:\n\n## Understanding It\n\n### 1. The Core Idea\nAt its heart, this is about recognizing patterns and relationships from data — similar to how your brain learns from experience.\n\n### 2. How It Works\n- **Input** → Information is received and processed\n- **Analysis** → Patterns are identified and matched\n- **Output** → A tailored response is generated\n\n### 3. Simple Analogy\nThink of a master chef who's tasted thousands of dishes. When you ask for something \"spicy but sweet,\" they draw on experience — no recipe needed.\n\nWant me to dive deeper into any aspect?", thinking: ['Explanation mode', 'Breaking it down', 'Ready'] };
   }
   
-  // ===== 7. CREATIVE =====
-  if (/\bwrite\b|\bstory\b|\bpoem\b|\bsong\b|\bdesign\b|\bcreative\b|\bimagine\b|\bidea\b|\bdream\b|\bfiction\b|\bnarrative\b/i.test(text)) {
-    return {text: "Here's something original I've crafted:\n\n---\n\n**The Last Signal**\n\nIn 2087, Earth received its final message from the Kepler colony:\n\n*\"We found what we were looking for. But we also found what was looking for us.\"*\n\nDr. Marina Chen stared at the transmission for three hours before she noticed it — a heartbeat, impossibly slow, hidden in the carrier wave. Something was using the signal itself as a vessel, riding it back toward Earth at the speed of light.\n\n47 hours until arrival.\n\nShe had two choices: warn the world and cause panic, or face whatever was coming alone.\n\nShe chose neither. She chose to answer.\n\n---\n\nThis could be a short story, novel opening, or screenplay treatment. Want me to continue, or try a different genre?", thinking:['Engaging creative mode...', 'Exploring unique angles...', 'Crafting narrative...', 'Done!']};
+  // Creative
+  if (/\bwrite\b|\bstory\b|\bpoem\b|\bsong\b|\bcreative\b|\bimagine\b|\bidea\b|\bfiction\b/i.test(lower)) {
+    return { text: "Here's something original:\n\n---\n\n**The Last Signal**\n\nIn 2087, Earth received its final message from deep space:\n\n*\"We found what we were looking for. But we also found what was looking for us.\"*\n\nDr. Marina Chen stared at the transmission for three hours before noticing the pattern hidden in the static — a heartbeat, impossibly slow, riding the carrier wave toward Earth.\n\n47 hours until arrival.\n\n---\n\nWant me to continue, or try a different genre?", thinking: ['Creative mode', 'Crafting story', 'Ready'] };
   }
   
-  // ===== 8. DEFAULT — always helpful =====
+  // Default
   return {
-    text: "Hey! I'm Nexus AI \u2014 your intelligent assistant.\n\n**I can help you with:**\n- \ud83d\udcbb **Coding** \u2014 write, debug, and explain code in any language\n- \ud83d\udccb **Planning** \u2014 break down projects into actionable steps\n- \ud83c\udfa8 **Creative Work** \u2014 stories, ideas, brainstorming, content creation\n- \ud83d\udcca **Analysis** \u2014 compare options, evaluate tradeoffs, review data\n- \ud83d\udcda **Learning** \u2014 explain concepts clearly at any level\n- \ud83d\udd2c **Science & Math** \u2014 solve problems step by step\n- \ud83e\udd16 **Tech & AI** \u2014 discuss the latest in technology\n\n**I remember our conversation** within each chat, so feel free to ask follow-ups.\n\nWhat would you like to explore?",
-    thinking: ['Nexus AI ready', 'Active and listening', 'Ask me anything!']
+    text: "Hey! I'm Nexus AI — your intelligent assistant.\n\n**I can help with:**\n- 💻 **Coding** — write, debug, explain code\n- 📋 **Planning** — break down projects into steps\n- 🎨 **Creative Work** — stories, ideas, content\n- 📊 **Analysis** — compare options, evaluate\n- 📚 **Learning** — explain concepts clearly\n- 🔬 **Science & Math** — solve problems\n- 🤖 **Tech & AI** — discuss latest technology\n\nWhat would you like to explore?",
+    thinking: ['Nexus AI ready', 'Ask me anything!']
   };
 }
 
+// ===== MULTIMEDIA =====
 
-// ===== MULTIMEDIA FEATURES =====
-var currentImage = null;
-var mediaRecorder = null;
-var audioChunks = [];
-var isRecording = false;
-var cameraStream = null;
-var speechSynth = window.speechSynthesis;
-var isSpeaking = false;
+// Image Upload
+function triggerImageUpload() {
+  document.getElementById('imageInput').click();
+}
 
-// === IMAGE UPLOAD ===
 function handleImageUpload(event) {
   var file = event.target.files[0];
   if (!file) return;
+  if (!file.type.startsWith('image/')) { alert('Please select an image file'); return; }
   var reader = new FileReader();
   reader.onload = function(e) {
     currentImage = e.target.result;
-    document.getElementById('previewImg').src = currentImage;
-    document.getElementById('imagePreview').style.display = 'block';
+    showImagePreview(currentImage);
   };
   reader.readAsDataURL(file);
 }
 
-function clearImage() {
-  currentImage = null;
+function showImagePreview(src) {
+  var preview = document.getElementById('imagePreview');
+  var img = document.getElementById('previewImg');
+  img.src = src;
+  preview.style.display = 'block';
+}
+
+function hideImagePreview() {
   document.getElementById('imagePreview').style.display = 'none';
+  document.getElementById('previewImg').src = '';
   document.getElementById('imageInput').value = '';
 }
 
-// === VOICE INPUT (Speech-to-Text) ===
+function clearImage() {
+  currentImage = null;
+  hideImagePreview();
+}
+
+// Voice Input (Speech-to-Text)
 function toggleVoiceInput() {
   var btn = document.getElementById('voiceBtn');
   var hint = document.getElementById('voiceHint');
   
-  if (isRecording) {
-    stopVoiceInput();
+  if (voiceRecognition) {
+    voiceRecognition.stop();
+    voiceRecognition = null;
+    btn.classList.remove('recording');
+    hint.style.display = 'none';
     return;
   }
   
-  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-    alert('Voice input is not supported in your browser. Try Chrome or Edge.');
-    return;
-  }
+  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) { alert('Voice input needs Chrome or Edge browser'); return; }
   
-  var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  var recognition = new SpeechRecognition();
-  recognition.lang = 'en-US';
-  recognition.interimResults = true;
-  recognition.continuous = false;
+  voiceRecognition = new SR();
+  voiceRecognition.lang = 'en-US';
+  voiceRecognition.interimResults = true;
+  voiceRecognition.continuous = false;
   
-  isRecording = true;
   btn.classList.add('recording');
-  hint.classList.add('active');
-  hint.textContent = '🎤 Listening... Speak now';
+  hint.style.display = 'block';
+  hint.textContent = 'Listening... Speak now';
   
-  recognition.onresult = function(event) {
-    var transcript = '';
-    for (var i = event.resultIndex; i < event.results.length; i++) {
-      transcript += event.results[i][0].transcript;
-    }
-    document.getElementById('userInput').value = transcript;
+  voiceRecognition.onresult = function(e) {
+    var t = '';
+    for (var i = 0; i < e.results.length; i++) t += e.results[i][0].transcript;
+    document.getElementById('userInput').value = t;
     updateSendBtn();
-    if (event.results[0].isFinal) {
-      hint.textContent = '✓ Captured! Click send or press Enter';
-    }
+    if (e.results[0].isFinal) hint.textContent = 'Captured! Press send';
   };
   
-  recognition.onerror = function(event) {
-    stopVoiceInput();
-    hint.textContent = '❌ Voice error: ' + event.error;
-    setTimeout(function() { hint.classList.remove('active'); }, 2000);
+  voiceRecognition.onerror = function(e) {
+    btn.classList.remove('recording');
+    hint.textContent = 'Error: ' + e.error;
+    voiceRecognition = null;
+    setTimeout(function() { hint.style.display = 'none'; }, 2000);
   };
   
-  recognition.onend = function() {
-    stopVoiceInput();
+  voiceRecognition.onend = function() {
+    btn.classList.remove('recording');
+    hint.style.display = 'none';
+    voiceRecognition = null;
   };
   
-  recognition.start();
+  voiceRecognition.start();
 }
 
-function stopVoiceInput() {
-  isRecording = false;
-  var btn = document.getElementById('voiceBtn');
-  var hint = document.getElementById('voiceHint');
-  btn.classList.remove('recording');
-  hint.classList.remove('active');
-}
-
-// === CAMERA ===
+// Camera
 function toggleCamera() {
-  var camView = document.getElementById('cameraView');
-  var btn = document.getElementById('cameraBtn');
-  
-  if (cameraStream) {
-    closeCamera();
-    return;
-  }
+  if (cameraStream) { closeCamera(); return; }
   
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    alert('Camera is not supported in your browser.');
+    alert('Camera needs a secure connection (HTTPS) and a modern browser');
     return;
   }
+  
+  var btn = document.getElementById('cameraBtn');
+  btn.classList.add('camera-on');
   
   navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false })
     .then(function(stream) {
       cameraStream = stream;
       var video = document.getElementById('camVideo');
       video.srcObject = stream;
-      camView.style.display = 'block';
-      btn.classList.add('camera-on');
+      document.getElementById('cameraView').style.display = 'block';
     })
     .catch(function(err) {
-      alert('Camera access denied: ' + err.message);
+      btn.classList.remove('camera-on');
+      alert('Camera error: ' + err.message);
     });
 }
 
 function capturePhoto() {
   var video = document.getElementById('camVideo');
+  if (!video.videoWidth) return;
   var canvas = document.createElement('canvas');
   canvas.width = video.videoWidth;
   canvas.height = video.videoHeight;
-  var ctx = canvas.getContext('2d');
-  ctx.drawImage(video, 0, 0);
-  currentImage = canvas.toDataURL('image/jpeg', 0.9);
-  document.getElementById('previewImg').src = currentImage;
-  document.getElementById('imagePreview').style.display = 'block';
+  canvas.getContext('2d').drawImage(video, 0, 0);
+  currentImage = canvas.toDataURL('image/jpeg', 0.85);
+  showImagePreview(currentImage);
   closeCamera();
 }
 
 function closeCamera() {
-  if (cameraStream) {
-    cameraStream.getTracks().forEach(function(track) { track.stop(); });
-    cameraStream = null;
-  }
+  if (cameraStream) { cameraStream.getTracks().forEach(function(t) { t.stop(); }); cameraStream = null; }
   document.getElementById('cameraView').style.display = 'none';
   document.getElementById('cameraBtn').classList.remove('camera-on');
 }
 
-// === TEXT-TO-SPEECH (Read aloud) ===
+// Text-to-Speech
 function toggleSpeech() {
   var btn = document.getElementById('speakBtn');
   
-  if (isSpeaking) {
-    speechSynth.cancel();
-    isSpeaking = false;
+  if (synth.speaking && !synth.paused) {
+    synth.cancel();
     btn.classList.remove('speaking');
     return;
   }
@@ -626,111 +509,141 @@ function toggleSpeech() {
   var chat = state.chats[state.activeChat];
   if (!chat || chat.messages.length === 0) return;
   
-  // Read the last AI message
-  var lastAIMsg = null;
+  var lastAI = null;
   for (var i = chat.messages.length - 1; i >= 0; i--) {
-    if (chat.messages[i].role === 'ai') {
-      lastAIMsg = chat.messages[i];
-      break;
-    }
+    if (chat.messages[i].role === 'ai') { lastAI = chat.messages[i]; break; }
   }
+  if (!lastAI) return;
   
-  if (!lastAIMsg) return;
-  
-  // Strip markdown for clean speech
-  var text = lastAIMsg.content
-    .replace(/```[\s\S]*?```/g, '(code block omitted)')
-    .replace(/[#*`>~|_\-]/g, ' ')
-    .replace(/\n+/g, '. ')
-    .replace(/\s+/g, ' ')
-    .trim();
-  
-  if (!text) return;
-  
-  isSpeaking = true;
   btn.classList.add('speaking');
-  
-  var utterance = new SpeechSynthesisUtterance(text);
-  utterance.rate = 1.0;
-  utterance.pitch = 1.0;
-  utterance.volume = 1.0;
-  
-  // Try to use a good voice
-  var voices = speechSynth.getVoices();
-  var preferred = voices.find(function(v) { return v.lang.startsWith('en') && v.name.includes('Google') || v.name.includes('Daniel') || v.name.includes('Samantha'); });
-  if (preferred) utterance.voice = preferred;
-  
-  utterance.onend = function() {
-    isSpeaking = false;
-    btn.classList.remove('speaking');
-  };
-  
-  utterance.onerror = function() {
-    isSpeaking = false;
-    btn.classList.remove('speaking');
-  };
-  
-  speechSynth.speak(utterance);
+  speakText(lastAI.content, function() { btn.classList.remove('speaking'); });
 }
 
-// Voice synthesis for any text (used after AI responds)
-function speakText(text) {
-  if (!text) return;
-  var clean = text.replace(/```[\s\S]*?```/g, '(code omitted)').replace(/[#*`>~|_\-]/g, ' ').replace(/\n+/g, '. ').replace(/\s+/g, ' ').trim();
+function speakText(text, onEnd) {
+  if (!text || !synth) return;
+  var clean = text.replace(/```[\s\S]*?```/g, 'code omitted').replace(/[#*`>~|_\-\\]/g, ' ').replace(/\n+/g, '. ').replace(/\s+/g, ' ').trim();
+  if (!clean) return;
   var u = new SpeechSynthesisUtterance(clean);
   u.rate = 1.0;
-  speechSynth.speak(u);
+  u.pitch = 1.0;
+  u.volume = 1.0;
+  var voices = synth.getVoices();
+  var pref = voices.find(function(v) { return v.lang.startsWith('en') && (v.name.includes('Google') || v.name.includes('Samantha') || v.name.includes('Daniel')); });
+  if (pref) u.voice = pref;
+  if (onEnd) { u.onend = onEnd; u.onerror = onEnd; }
+  synth.speak(u);
 }
 
-// === DRAG & DROP IMAGE ===
-document.addEventListener('DOMContentLoaded', function() {
-  // Setup drag and drop on the chat area
-  var chatArea = document.getElementById('chatArea');
-  if (chatArea) {
-    chatArea.addEventListener('dragover', function(e) {
-      e.preventDefault();
-      e.stopPropagation();
-    });
-    chatArea.addEventListener('drop', function(e) {
-      e.preventDefault();
-      e.stopPropagation();
-      var file = e.dataTransfer.files[0];
-      if (file && file.type.startsWith('image/')) {
-        var reader = new FileReader();
-        reader.onload = function(ev) {
-          currentImage = ev.target.result;
-          document.getElementById('previewImg').src = currentImage;
-          document.getElementById('imagePreview').style.display = 'block';
-        };
-        reader.readAsDataURL(file);
+// ===== DRAG & DROP + PASTE =====
+(function() {
+  document.addEventListener('DOMContentLoaded', function() {
+    var chatArea = document.getElementById('chatArea');
+    if (chatArea) {
+      chatArea.addEventListener('dragover', function(e) { e.preventDefault(); e.stopPropagation(); });
+      chatArea.addEventListener('drop', function(e) {
+        e.preventDefault(); e.stopPropagation();
+        var file = e.dataTransfer.files[0];
+        if (file && file.type.startsWith('image/')) {
+          var reader = new FileReader();
+          reader.onload = function(ev) { currentImage = ev.target.result; showImagePreview(currentImage); };
+          reader.readAsDataURL(file);
+        }
+      });
+    }
+    document.addEventListener('paste', function(e) {
+      var items = e.clipboardData.items;
+      for (var i = 0; i < items.length; i++) {
+        if (items[i].type.startsWith('image/')) {
+          var blob = items[i].getAsFile();
+          var reader = new FileReader();
+          reader.onload = function(ev) { currentImage = ev.target.result; showImagePreview(currentImage); };
+          reader.readAsDataURL(blob);
+          break;
+        }
       }
     });
+  });
+})();
+
+
+// ===== LIVE CAMERA MODE =====
+var liveCamActive = false;
+var liveCamInterval = null;
+var liveSnapshots = [];
+
+function toggleLiveCamera() {
+  var btn = document.getElementById('cameraBtn');
+  if (liveCamActive) { stopLiveCamera(); return; }
+  
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    alert('Camera needs HTTPS and a modern browser');
+    return;
   }
   
-  // Clipboard paste support
-  document.addEventListener('paste', function(e) {
-    var items = e.clipboardData.items;
-    for (var i = 0; i < items.length; i++) {
-      if (items[i].type.startsWith('image/')) {
-        var blob = items[i].getAsFile();
-        var reader = new FileReader();
-        reader.onload = function(ev) {
-          currentImage = ev.target.result;
-          document.getElementById('previewImg').src = currentImage;
-          document.getElementById('imagePreview').style.display = 'block';
-        };
-        reader.readAsDataURL(blob);
-        break;
-      }
-    }
-  });
-});
+  btn.classList.add('camera-on');
+  btn.textContent = '🔴';
+  
+  navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false })
+    .then(function(stream) {
+      cameraStream = stream;
+      var video = document.getElementById('camVideo');
+      video.srcObject = stream;
+      document.getElementById('cameraView').style.display = 'block';
+      liveCamActive = true;
+      
+      // Auto-capture frames and send for analysis
+      document.getElementById('userInput').value = 'What do you see in this image? Describe it.';
+      document.getElementById('userInput').placeholder = 'Live camera active — type to ask about what I see...';
+      
+      // Capture first frame after 1 second
+      setTimeout(function() {
+        if (liveCamActive) captureLiveFrame();
+      }, 1000);
+    })
+    .catch(function(err) {
+      btn.classList.remove('camera-on');
+      btn.textContent = '📷';
+      alert('Camera error: ' + err.message);
+    });
+}
 
+function captureLiveFrame() {
+  if (!liveCamActive) return;
+  capturePhotoToImage();
+  if (currentImage && currentImage.startsWith('data:image')) {
+    // Auto-send if there's a prompt in the input
+    var inp = document.getElementById('userInput');
+    if (inp.value.trim()) {
+      sendMessage();
+    }
+  }
+}
+
+function capturePhotoToImage() {
+  var video = document.getElementById('camVideo');
+  if (!video.videoWidth) return;
+  var canvas = document.createElement('canvas');
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  canvas.getContext('2d').drawImage(video, 0, 0);
+  currentImage = canvas.toDataURL('image/jpeg', 0.8);
+}
+
+function stopLiveCamera() {
+  liveCamActive = false;
+  if (cameraStream) { cameraStream.getTracks().forEach(function(t) { t.stop(); }); cameraStream = null; }
+  document.getElementById('cameraView').style.display = 'none';
+  var btn = document.getElementById('cameraBtn');
+  btn.classList.remove('camera-on');
+  btn.textContent = '📷';
+  document.getElementById('userInput').placeholder = 'Message Nexus AI...';
+  hideImagePreview();
+}
 
 // ===== INIT =====
-window.addEventListener("unhandledrejection", function(e) { console.error("Unhandled rejection:", e.reason); });
-document.addEventListener("DOMContentLoaded", function() {
-  updateStatusBadge();
+document.addEventListener('DOMContentLoaded', function() {
+  updateStatus();
   renderAll();
-  document.getElementById('userInput').focus();
+  var inp = document.getElementById('userInput');
+  if (inp) inp.focus();
 });

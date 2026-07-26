@@ -3,481 +3,224 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
-<title>Nexus AI — Your intelligence, amplified.</title>
-<meta name="description" content="Nexus AI — A free AI assistant that thinks, learns, remembers, and helps anyone. Created by Fred Trent. Open to everyone."/>
-<meta property="og:title" content="Nexus AI — Your intelligence, amplified."/>
-<meta property="og:description" content="Experience the world's most capable personal AI operating system. Chat, create, and collaborate with an AI that remembers and reasons."/>
+<title>Nexus AI</title>
+<meta name="description" content="Nexus AI — A powerful, free AI assistant for everyone."/>
+<meta property="og:title" content="Nexus AI"/>
+<meta property="og:description" content="A powerful, free AI assistant for everyone."/>
 <meta property="og:type" content="website"/>
-<meta property="og:url" content="https://freecash123.github.io/nexus-ai/"/>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --bg: #0A0A0B;
-    --surface: #141416;
-    --surface2: #1C1C1F;
-    --surface3: #252528;
-    --border: #2A2A2E;
-    --text: #EDEDEF;
-    --text2: #B0B0B8;
-    --text3: #707078;
-    --lilac: #B8A9E8;
-    --lilac2: #9B8AD8;
-    --teal: #4ECDC4;
-    --amber: #F5A623;
-    --coral: #FF6B6B;
-    --green: #4ADE80;
-    --blue: #60A5FA;
-    --radius: 16px;
-    --radius-sm: 10px;
-  }
-  * { margin:0; padding:0; box-sizing:border-box; }
-  html { height:100%; }
-  body {
-    height:100%; overflow:hidden;
-    font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
-    background:var(--bg); color:var(--text);
-    display:flex; flex-direction:column;
-  }
-  .mono { font-family:'JetBrains Mono',monospace; }
-  #header {
-    flex-shrink:0;
-    display:flex; align-items:center; justify-content:space-between;
-    padding:12px 20px;
-    background:var(--surface);
-    border-bottom:1px solid var(--border);
-    z-index:10;
-  }
-  #header .brand {
-    display:flex; align-items:center; gap:10px;
-    font-weight:800; font-size:14px;
-    cursor:pointer; user-select:none;
-  }
-  .brand-mark {
-    width:28px; height:28px;
-    background:var(--lilac);
-    border-radius:8px;
-    display:flex; align-items:center; justify-content:center;
-    position:relative;
-  }
-  .brand-mark::after {
-    content:'';
-    position:absolute; top:-3px; right:-3px;
-    width:8px; height:8px; border-radius:50%;
-    background:var(--teal);
-    border:2px solid var(--surface);
-    animation:pulse 2s ease-in-out infinite;
-  }
-  @keyframes pulse {
-    0%,100% { transform:scale(1); opacity:1; }
-    50% { transform:scale(1.3); opacity:0.7; }
-  }
-  .header-actions { display:flex; align-items:center; gap:8px; }
-  .btn-icon {
-    width:36px; height:36px;
-    border-radius:10px;
-    background:var(--surface2);
-    border:1px solid var(--border);
-    color:var(--text2);
-    cursor:pointer;
-    display:flex; align-items:center; justify-content:center;
-    font-size:16px;
-    transition:all 0.2s;
-  }
-  .btn-icon:hover { background:var(--surface3); color:var(--text); }
-  #app { display:flex; flex:1; overflow:hidden; }
-  #sidebar {
-    width:280px; flex-shrink:0;
-    background:var(--surface);
-    border-right:1px solid var(--border);
-    display:flex; flex-direction:column;
-    transition:transform 0.3s;
-  }
-  #sidebar.collapsed { transform:translateX(-280px); width:0; overflow:hidden; }
-  @media (max-width:768px) {
-    #sidebar { position:fixed; left:0; top:0; bottom:0; z-index:50; }
-    #sidebar.collapsed { transform:translateX(-280px); }
-  }
-  .sidebar-header {
-    padding:16px;
-    display:flex; align-items:center; justify-content:space-between;
-  }
-  .sidebar-header h3 {
-    font-size:12px; text-transform:uppercase; letter-spacing:0.08em;
-    color:var(--text3); font-weight:600;
-  }
-  #newChatBtn {
-    padding:8px 16px;
-    border-radius:999px;
-    background:var(--lilac);
-    color:#1A1A1A;
-    border:none;
-    font-size:12px; font-weight:700;
-    cursor:pointer;
-    transition:all 0.2s;
-    display:flex; align-items:center; gap:6px;
-  }
-  #newChatBtn:hover { background:var(--lilac2); transform:translateY(-1px); }
-  #chatList {
-    flex:1; overflow-y:auto; padding:0 8px 8px;
-    display:flex; flex-direction:column; gap:2px;
-  }
-  .chat-item {
-    padding:10px 12px;
-    border-radius:var(--radius-sm);
-    cursor:pointer;
-    font-size:13px;
-    color:var(--text2);
-    transition:all 0.15s;
-    display:flex; align-items:center; gap:8px;
-    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-  }
-  .chat-item:hover { background:var(--surface2); }
-  .chat-item.active { background:var(--surface2); color:var(--text); font-weight:500; }
-  .chat-item .dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
-  .chat-item.active .dot { background:var(--lilac); }
-  .chat-item .delete-chat {
-    margin-left:auto; opacity:0; font-size:14px;
-    color:var(--text3); cursor:pointer; padding:2px;
-  }
-  .chat-item:hover .delete-chat { opacity:1; }
-  .chat-item .delete-chat:hover { color:var(--coral); }
-  #chatArea { flex:1; display:flex; flex-direction:column; min-width:0; }
-  #messages {
-    flex:1; overflow-y:auto; padding:20px;
-    display:flex; flex-direction:column; gap:20px;
-    scroll-behavior:smooth;
-  }
-  .welcome-screen {
-    flex:1; display:flex; flex-direction:column;
-    align-items:center; justify-content:center;
-    text-align:center; padding:40px;
-    gap:16px;
-  }
-  .welcome-screen .big-mark {
-    width:72px; height:72px;
-    background:var(--lilac);
-    border-radius:20px;
-    display:flex; align-items:center; justify-content:center;
-    margin-bottom:8px;
-    position:relative;
-  }
-  .welcome-screen .big-mark::after {
-    content:'';
-    position:absolute; top:-6px; right:-6px;
-    width:16px; height:16px; border-radius:50%;
-    background:var(--teal);
-    border:3px solid var(--bg);
-    animation:pulse 2s ease-in-out infinite;
-  }
-  .welcome-screen h1 {
-    font-size:28px; font-weight:800; letter-spacing:-0.03em;
-  }
-  .welcome-screen h1 span { color:var(--lilac); }
-  .welcome-screen p { color:var(--text2); font-size:15px; max-width:480px; line-height:1.6; }
-  .quick-prompts {
-    display:flex; flex-wrap:wrap; gap:8px; justify-content:center;
-    margin-top:8px;
-  }
-  .quick-prompt {
-    padding:10px 18px;
-    background:var(--surface);
-    border:1px solid var(--border);
-    border-radius:999px;
-    font-size:13px; color:var(--text2);
-    cursor:pointer;
-    transition:all 0.2s;
-  }
-  .quick-prompt:hover { border-color:var(--lilac); color:var(--text); }
-  .msg { display:flex; gap:12px; animation:msgIn 0.4s ease-out; }
-  @keyframes msgIn { from{opacity:0;transform:translateY(12px);} to{opacity:1;transform:translateY(0);} }
-  .msg-avatar {
-    width:34px; height:34px; border-radius:10px;
-    display:flex; align-items:center; justify-content:center;
-    flex-shrink:0; font-weight:700; font-size:14px;
-  }
-  .msg.user .msg-avatar { background:var(--amber); color:#1A1A1A; }
-  .msg.ai .msg-avatar { background:var(--lilac); color:#1A1A1A; }
-  .msg-body { flex:1; min-width:0; }
-  .msg-header { font-size:11px; color:var(--text3); font-weight:600; margin-bottom:4px; text-transform:uppercase; letter-spacing:0.05em; display:flex; align-items:center; gap:8px; }
-  .msg-content {
-    font-size:14px; line-height:1.6;
-    color:var(--text);
-    word-wrap:break-word;
-  }
-  .msg-content p { margin-bottom:8px; }
-  .msg-content p:last-child { margin-bottom:0; }
-  .msg-content code {
-    background:var(--surface2); padding:2px 6px; border-radius:4px;
-    font-size:13px; font-family:'JetBrains Mono',monospace;
-  }
-  .msg-content pre {
-    background:var(--surface);
-    border:1px solid var(--border);
-    border-radius:var(--radius-sm);
-    padding:14px; overflow-x:auto;
-    font-size:13px; font-family:'JetBrains Mono',monospace;
-    line-height:1.5;
-    margin:8px 0;
-  }
-  .msg-content ul, .msg-content ol { margin:8px 0; padding-left:20px; }
-  .msg-content li { margin-bottom:4px; }
-  .thinking-block {
-    background:var(--surface);
-    border:1px solid var(--border);
-    border-radius:var(--radius-sm);
-    padding:12px 16px;
-    margin-bottom:12px;
-    font-size:12px;
-    color:var(--text2);
-  }
-  .thinking-header {
-    display:flex; align-items:center; gap:8px;
-    font-weight:600; color:var(--lilac);
-    margin-bottom:4px;
-    font-size:11px; text-transform:uppercase; letter-spacing:0.06em;
-  }
-  .thinking-spinner {
-    width:14px; height:14px;
-    border:2px solid var(--border);
-    border-top-color:var(--lilac);
-    border-radius:50%;
-    animation:spin 0.8s linear infinite;
-  }
-  @keyframes spin { to{transform:rotate(360deg);} }
-  .thinking-steps { display:flex; flex-direction:column; gap:4px; }
-  .thinking-step {
-    display:flex; align-items:center; gap:6px;
-    opacity:0.6; transition:opacity 0.3s;
-  }
-  .thinking-step.done { opacity:1; color:var(--green); }
-  .thinking-step.active { opacity:1; color:var(--lilac); }
-  .thinking-step .step-dot {
-    width:5px; height:5px; border-radius:50%; flex-shrink:0;
-    background:currentColor;
-  }
-  .thinking-step.done .step-dot { background:var(--green); }
-  #inputArea { flex-shrink:0; padding:12px 20px 20px; background:var(--bg); }
-  .input-wrapper {
-    max-width:800px; margin:0 auto;
-    background:var(--surface);
-    border:1px solid var(--border);
-    border-radius:24px;
-    display:flex; align-items:flex-end; gap:8px;
-    padding:6px 6px 6px 18px;
-    transition:border-color 0.2s;
-  }
-  .input-wrapper:focus-within { border-color:var(--lilac); }
-  #userInput {
-    flex:1; background:none; border:none;
-    color:var(--text); font-size:14px; font-family:inherit;
-    resize:none; outline:none; padding:8px 0;
-    min-height:24px; max-height:150px;
-    line-height:1.5;
-  }
-  #userInput::placeholder { color:var(--text3); }
-  #sendBtn {
-    width:36px; height:36px; flex-shrink:0;
-    border-radius:50%;
-    background:var(--lilac);
-    border:none; cursor:pointer;
-    display:flex; align-items:center; justify-content:center;
-    transition:all 0.2s;
-    opacity:0.5;
-  }
-  #sendBtn.active { opacity:1; }
-  #sendBtn:hover { background:var(--lilac2); transform:scale(1.05); }
-  #sendBtn:disabled { opacity:0.3; cursor:not-allowed; }
-  .input-footer {
-    max-width:800px; margin:6px auto 0;
-    font-size:11px; color:var(--text3);
-    text-align:center;
-  }
-  .modal-overlay {
-    position:fixed; top:0; left:0; right:0; bottom:0;
-    background:rgba(0,0,0,0.7);
-    z-index:100;
-    display:flex; align-items:center; justify-content:center;
-    animation:fadeIn 0.2s;
-  }
-  @keyframes fadeIn { from{opacity:0;} to{opacity:1;} }
-  .modal {
-    background:var(--surface);
-    border:1px solid var(--border);
-    border-radius:20px;
-    padding:28px; width:90%; max-width:480px;
-    animation:scaleIn 0.2s ease-out;
-  }
-  @keyframes scaleIn { from{transform:scale(0.95);opacity:0;} to{transform:scale(1);opacity:1;} }
-  .modal h3 { font-size:18px; font-weight:700; margin-bottom:16px; }
-  .modal label { display:block; font-size:12px; font-weight:600; color:var(--text2); margin-bottom:6px; text-transform:uppercase; letter-spacing:0.06em; }
-  .modal input, .modal select {
-    width:100%; padding:10px 14px;
-    background:var(--surface2);
-    border:1px solid var(--border);
-    border-radius:var(--radius-sm);
-    color:var(--text);
-    font-size:14px; font-family:inherit;
-    outline:none;
-    margin-bottom:12px;
-    transition:border-color 0.2s;
-  }
-  .modal input:focus { border-color:var(--lilac); }
-  .modal .hint { font-size:11px; color:var(--text3); margin-top:-8px; margin-bottom:12px; }
-  .modal .hint a { color:var(--lilac); }
-  .modal-btns { display:flex; gap:8px; justify-content:flex-end; margin-top:16px; }
-  .btn {
-    padding:10px 20px; border-radius:999px;
-    font-size:13px; font-weight:600; cursor:pointer;
-    border:none; transition:all 0.2s;
-  }
-  .btn-primary { background:var(--lilac); color:#1A1A1A; }
-  .btn-primary:hover { background:var(--lilac2); }
-  .btn-secondary { background:var(--surface2); color:var(--text2); border:1px solid var(--border); }
-  .btn-secondary:hover { background:var(--surface3); }
-  .status-badge {
-    display:inline-flex; align-items:center; gap:6px;
-    font-size:11px; padding:4px 10px; border-radius:999px;
-    font-weight:600;
-  }
-  .status-badge.online { background:rgba(74,222,128,0.15); color:var(--green); }
-  .status-badge.offline { background:rgba(255,107,107,0.15); color:var(--coral); }
-  .status-dot { width:6px; height:6px; border-radius:50%; }
-  .status-badge.online .status-dot { background:var(--green); animation:pulse 2s ease-in-out infinite; }
-  .status-badge.offline .status-dot { background:var(--coral); }
-  ::-webkit-scrollbar { width:6px; }
-  ::-webkit-scrollbar-track { background:transparent; }
-  ::-webkit-scrollbar-thumb { background:var(--surface3); border-radius:3px; }
-  ::-webkit-scrollbar-thumb:hover { background:var(--text3); }
-  .sidebar-overlay {
-    display:none;
-    position:fixed; top:0; left:0; right:0; bottom:0;
-    background:rgba(0,0,0,0.5); z-index:45;
-  }
-  @media (max-width:768px) {
-    .sidebar-overlay.active { display:block; }
-    #header { padding:10px 14px; }
-    #messages { padding:12px; }
-    #inputArea { padding:8px 12px 16px; }
-  }
-
-/* ==== MULTIMEDIA CONTROLS ==== */
-.multimedia-bar{display:flex;align-items:center;gap:6px;padding:0 12px 4px;max-width:800px;margin:0 auto}
-.mm-btn{width:32px;height:32px;border-radius:50%;background:var(--surface2);border:1px solid var(--border);color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;transition:all 0.2s;position:relative}
+:root{--bg:#0A0A0B;--surface:#141416;--surface2:#1C1C1F;--surface3:#252528;--border:#2A2A2E;--text:#EDEDEF;--text2:#B0B0B8;--text3:#707078;--lilac:#B8A9E8;--lilac2:#9B8AD8;--teal:#4ECDC4;--amber:#F5A623;--coral:#FF6B6B;--green:#4ADE80;--blue:#60A5FA;--radius:16px;--radius-sm:10px}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text);display:flex;flex-direction:column}
+.mono{font-family:'JetBrains Mono',monospace}
+#header{flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--surface);border-bottom:1px solid var(--border);z-index:60}
+#header .brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:15px;cursor:pointer;user-select:none}
+.brand-mark{width:28px;height:28px;background:var(--lilac);border-radius:8px;display:flex;align-items:center;justify-content:center;position:relative;flex-shrink:0}
+.brand-mark::after{content:'';position:absolute;top:-3px;right:-3px;width:8px;height:8px;border-radius:50%;background:var(--teal);border:2px solid var(--surface);animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.3);opacity:0.7}}
+.header-actions{display:flex;align-items:center;gap:8px}
+.btn-icon{width:34px;height:34px;border-radius:10px;background:var(--surface2);border:1px solid var(--border);color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;transition:all 0.2s}
+.btn-icon:hover{background:var(--surface3);color:var(--text)}
+.status-badge{display:inline-flex;align-items:center;gap:6px;font-size:10px;padding:4px 10px;border-radius:999px;font-weight:600;background:rgba(74,222,128,0.15);color:var(--green)}
+.status-dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 2s ease-in-out infinite}
+#app{display:flex;flex:1;overflow:hidden}
+#sidebar{width:280px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;transition:transform 0.3s;z-index:50}
+@media(max-width:768px){#sidebar{position:fixed;left:0;top:0;bottom:0;z-index:55;transform:translateX(0)}#sidebar.collapsed{transform:translateX(-100%)}}
+.sidebar-header{padding:14px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.sidebar-header h3{font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:var(--text3);font-weight:600}
+#newChatBtn{padding:6px 14px;border-radius:999px;background:var(--lilac);color:#1A1A1A;border:none;font-size:12px;font-weight:700;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;gap:4px}
+#newChatBtn:hover{background:var(--lilac2);transform:translateY(-1px)}
+#chatList{flex:1;overflow-y:auto;padding:0 8px 8px;display:flex;flex-direction:column;gap:2px}
+.chat-item{padding:10px 12px;border-radius:var(--radius-sm);cursor:pointer;font-size:13px;color:var(--text2);transition:all 0.15s;display:flex;align-items:center;gap:8px}
+.chat-item:hover{background:var(--surface2)}
+.chat-item.active{background:var(--surface2);color:var(--text);font-weight:500}
+.chat-item .dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.chat-item.active .dot{background:var(--lilac)}
+.chat-item .delete-chat{margin-left:auto;opacity:0;font-size:16px;color:var(--text3);cursor:pointer;padding:2px 4px;border-radius:4px}
+.chat-item:hover .delete-chat{opacity:1}
+.chat-item .delete-chat:hover{color:var(--coral);background:rgba(255,107,107,0.15)}
+#chatArea{flex:1;display:flex;flex-direction:column;min-width:0;position:relative}
+#messages{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:16px;scroll-behavior:smooth}
+.welcome-screen{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px 20px;gap:16px}
+.welcome-screen .big-mark{width:72px;height:72px;background:var(--lilac);border-radius:20px;display:flex;align-items:center;justify-content:center;margin-bottom:8px;position:relative}
+.welcome-screen .big-mark::after{content:'';position:absolute;top:-6px;right:-6px;width:16px;height:16px;border-radius:50%;background:var(--teal);border:3px solid var(--bg);animation:pulse 2s ease-in-out infinite}
+.welcome-screen h1{font-size:32px;font-weight:800;letter-spacing:-0.03em}
+.welcome-screen h1 span{color:var(--lilac)}
+.welcome-screen p{color:var(--text2);font-size:15px;max-width:480px;line-height:1.6}
+.quick-prompts{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:8px}
+.quick-prompt{padding:10px 18px;background:var(--surface);border:1px solid var(--border);border-radius:999px;font-size:13px;color:var(--text2);cursor:pointer;transition:all 0.2s}
+.quick-prompt:hover{border-color:var(--lilac);color:var(--text)}
+.msg{display:flex;gap:12px;animation:msgIn 0.3s ease-out}
+@keyframes msgIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.msg-avatar{width:32px;height:32px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:700;font-size:13px}
+.msg.user .msg-avatar{background:var(--amber);color:#1A1A1A}
+.msg.ai .msg-avatar{background:var(--lilac);color:#1A1A1A}
+.msg-body{flex:1;min-width:0}
+.msg-header{font-size:10px;color:var(--text3);font-weight:600;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.05em}
+.msg-content{font-size:14px;line-height:1.65;color:var(--text);word-wrap:break-word}
+.msg-content p{margin-bottom:6px}.msg-content p:last-child{margin-bottom:0}
+.msg-content code{background:var(--surface2);padding:1px 6px;border-radius:4px;font-size:12px;font-family:'JetBrains Mono',monospace}
+.msg-content pre{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;overflow-x:auto;font-size:12px;font-family:'JetBrains Mono',monospace;line-height:1.5;margin:8px 0}
+.msg-content ul,.msg-content ol{margin:6px 0;padding-left:20px}.msg-content li{margin-bottom:3px}
+.thinking-block{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:10px;font-size:11px;color:var(--text2)}
+.thinking-header{display:flex;align-items:center;gap:8px;font-weight:600;color:var(--lilac);margin-bottom:4px;font-size:10px;text-transform:uppercase;letter-spacing:0.06em}
+.thinking-spinner{width:14px;height:14px;border:2px solid var(--border);border-top-color:var(--lilac);border-radius:50%;animation:spin 0.8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.thinking-steps{display:flex;flex-direction:column;gap:3px}
+.thinking-step{display:flex;align-items:center;gap:6px;font-size:11px;opacity:0.6;transition:opacity 0.3s}
+.thinking-step.done{opacity:1;color:var(--green)}
+.thinking-step .step-dot{width:4px;height:4px;border-radius:50%;flex-shrink:0}
+#inputArea{flex-shrink:0;padding:8px 16px 14px;background:var(--bg);position:relative;z-index:5}
+.multimedia-bar{display:flex;align-items:center;gap:8px;padding:0 0 8px;max-width:800px;margin:0 auto}
+.mm-btn{width:34px;height:34px;border-radius:50%;background:var(--surface2);border:1px solid var(--border);color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;transition:all 0.2s;position:relative;flex-shrink:0}
 .mm-btn:hover{background:var(--surface3);color:var(--text);border-color:var(--lilac)}
 .mm-btn.recording{background:var(--coral);border-color:var(--coral);color:#fff;animation:pulse 1.5s ease-in-out infinite}
 .mm-btn.camera-on{background:var(--green);border-color:var(--green);color:#1A1A1A}
 .mm-btn.speaking{background:var(--lilac);border-color:var(--lilac);color:#1A1A1A}
-#imagePreview{display:none;max-width:800px;margin:0 auto;padding:0 20px 8px}
-#imagePreview img{max-width:180px;max-height:110px;border-radius:var(--radius-sm);border:1px solid var(--border);object-fit:cover}
+#voiceHint{display:none;font-size:12px;color:var(--lilac);text-align:center;padding:0 0 4px;max-width:800px;margin:0 auto}
+#imagePreview{display:none;max-width:800px;margin:0 auto;padding:0 0 6px}
 #imagePreview .img-wrap{position:relative;display:inline-block}
+#imagePreview img{max-width:160px;max-height:100px;border-radius:10px;border:1px solid var(--border);object-fit:cover}
 #imagePreview .remove-img{position:absolute;top:-8px;right:-8px;width:20px;height:20px;border-radius:50%;background:var(--coral);color:#fff;border:none;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center}
-#cameraView{display:none;max-width:800px;margin:0 auto 8px;padding:0 20px}
-#cameraView video{width:100%;max-height:200px;border-radius:var(--radius-sm);border:1px solid var(--border);background:#000}
+#cameraView{display:none;max-width:800px;margin:0 auto 8px}
+#cameraView video{width:100%;max-height:180px;border-radius:12px;border:1px solid var(--border);background:#000}
 #cameraView .cam-controls{display:flex;gap:6px;margin-top:6px;justify-content:center}
-.cam-btn{padding:6px 14px;border-radius:999px;font-size:11px;font-weight:600;cursor:pointer;border:none;transition:all 0.2s}
-.cam-capture{background:var(--lilac);color:#1A1A1A}
-.cam-capture:hover{background:var(--lilac2)}
-.cam-close{background:var(--surface2);color:var(--text2);border:1px solid var(--border)}
-.cam-close:hover{background:var(--surface3)}
-.msg-image{max-width:240px;max-height:180px;border-radius:var(--radius-sm);margin-bottom:8px;cursor:pointer;border:1px solid var(--border);display:block}
-.voice-hint{font-size:11px;color:var(--lilac);text-align:center;padding:4px;display:none}
-.voice-hint.active{display:block}
-
+.cam-btn{padding:6px 16px;border-radius:999px;font-size:12px;font-weight:600;cursor:pointer;border:none;transition:all 0.2s}
+.cam-capture{background:var(--lilac);color:#1A1A1A}.cam-capture:hover{background:var(--lilac2)}
+.cam-close{background:var(--surface2);color:var(--text2);border:1px solid var(--border)}.cam-close:hover{background:var(--surface3)}
+.input-wrapper{max-width:800px;margin:0 auto;background:var(--surface);border:1px solid var(--border);border-radius:22px;display:flex;align-items:flex-end;gap:6px;padding:5px 5px 5px 16px;transition:border-color 0.2s}
+.input-wrapper:focus-within{border-color:var(--lilac)}
+#userInput{flex:1;background:none;border:none;color:var(--text);font-size:14px;font-family:inherit;resize:none;outline:none;padding:7px 0;min-height:22px;max-height:140px;line-height:1.4}
+#userInput::placeholder{color:var(--text3)}
+#sendBtn{width:34px;height:34px;flex-shrink:0;border-radius:50%;background:var(--surface3);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;opacity:0.4}
+#sendBtn.active{opacity:1;background:var(--lilac)}
+#sendBtn.active:hover{background:var(--lilac2);transform:scale(1.05)}
+#sendBtn:disabled{opacity:0.25;cursor:not-allowed}
+.input-footer{max-width:800px;margin:5px auto 0;font-size:10px;color:var(--text3);text-align:center}
+.modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:100;display:flex;align-items:center;justify-content:center;animation:fadeIn 0.2s}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:28px;width:90%;max-width:440px;animation:scaleIn 0.2s ease-out}
+@keyframes scaleIn{from{transform:scale(0.95);opacity:0}to{transform:scale(1);opacity:1}}
+.modal h3{font-size:18px;font-weight:700;margin-bottom:14px}
+.modal label{display:block;font-size:11px;font-weight:600;color:var(--text2);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.06em}
+.modal input,.modal select{width:100%;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:14px;font-family:inherit;outline:none;margin-bottom:10px}
+.modal input:focus,.modal select:focus{border-color:var(--lilac)}
+.modal .hint{font-size:11px;color:var(--text3);margin-top:-6px;margin-bottom:10px}
+.modal .hint a{color:var(--lilac)}
+.modal-btns{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+.btn{padding:8px 18px;border-radius:999px;font-size:13px;font-weight:600;cursor:pointer;border:none;transition:all 0.2s}
+.btn-primary{background:var(--lilac);color:#1A1A1A}.btn-primary:hover{background:var(--lilac2)}
+.btn-secondary{background:var(--surface2);color:var(--text2);border:1px solid var(--border)}.btn-secondary:hover{background:var(--surface3)}
+.btn-danger{background:rgba(255,107,107,0.12);color:var(--coral);border:1px solid rgba(255,107,107,0.25)}.btn-danger:hover{background:rgba(255,107,107,0.2)}
+.sidebar-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:48}
+@media(max-width:768px){.sidebar-overlay.active{display:block}#header{padding:8px 12px}#messages{padding:10px}#inputArea{padding:6px 10px 12px}}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--surface3);border-radius:3px}
 </style>
 </head>
 <body>
 
 <div id="header">
-  <div class="brand" onclick="toggleSidebar()">
-    <div class="brand-mark">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1A1A1A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 4.44-1.04Z"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-4.44-1.04Z"/></svg>
-    </div>
-    Nexus AI
-  </div>
-  <div class="header-actions">
-    <span id="statusBadge" class="status-badge online"><span class="status-dot"></span>Nexus AI Active</span>
-    <button class="btn-icon" onclick="openSettings()" title="Settings">⚙</button>
-  </div>
+<div class="brand" onclick="toggleSidebar()">
+<div class="brand-mark">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1A1A1A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 4.44-1.04Z"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-4.44-1.04Z"/></svg>
+</div>
+Nexus AI
+</div>
+<div class="header-actions">
+<span id="statusBadge" class="status-badge"><span class="status-dot"></span>Active</span>
+<button class="btn-icon" onclick="openSettings()" title="Settings">⚙</button>
+</div>
 </div>
 
 <div id="app">
-  <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
-  <div id="sidebar">
-    <div class="sidebar-header">
-      <h3>Conversations</h3>
-      <button id="newChatBtn" onclick="newChat()">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
-        New
-      </button>
-    </div>
-    <div id="chatList"></div>
-  </div>
-
-  <div id="chatArea">
-    <div id="messages">
-      <div class="welcome-screen" id="welcomeScreen">
-        <div class="big-mark">
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#1A1A1A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 4.44-1.04Z"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-4.44-1.04Z"/></svg>
-        </div>
-        <h1>Nexus <span>AI</span></h1>
-        <p>I'm a free AI assistant that thinks, reasons, remembers conversations, and helps with anything — coding, creative work, analysis, planning, and more. Open to everyone.</p>
-        <div class="creator-credit" style="font-size:13px;color:var(--text3);margin-top:4px">Created by <a href="https://github.com/freecash123" target="_blank" style="color:var(--lilac);text-decoration:none">Fred Trent</a> · <a href="https://github.com/freecash123/nexus-ai" target="_blank" style="color:var(--lilac);text-decoration:none">Open Source on GitHub</a></div>
-        <div class="quick-prompts">
-          <div class="quick-prompt" onclick="sendQuick('Explain quantum computing in simple terms')">🧪 Explain quantum computing</div>
-          <div class="quick-prompt" onclick="sendQuick('Write a Python function to sort a list of dictionaries by a key')">💻 Write Python code</div>
-          <div class="quick-prompt" onclick="sendQuick('Help me plan a product launch in 30 days')">🚀 Plan a product launch</div>
-          <div class="quick-prompt" onclick="sendQuick('What are the biggest AI trends in 2026?')">🤖 AI trends 2026</div>
-        </div>
-      </div>
-    </div>
-
-    <div id="inputArea">
-      
-<div class="multimedia-bar" id="mmBar">
-  <input type="file" id="imageInput" accept="image/*" style="display:none" onchange="handleImageUpload(event)">
-  <button class="mm-btn" onclick="document.getElementById('imageInput').click()" title="Upload image">🖼️</button>
-  <button class="mm-btn" id="voiceBtn" onclick="toggleVoiceInput()" title="Voice input">🎤</button>
-  <button class="mm-btn" id="cameraBtn" onclick="toggleCamera()" title="Camera">📷</button>
-  <button class="mm-btn" id="speakBtn" onclick="toggleSpeech()" title="Read aloud">🔊</button>
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+<div id="sidebar" class="collapsed">
+<div class="sidebar-header">
+<h3>Conversations</h3>
+<button id="newChatBtn" onclick="newChat()">
+<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+New
+</button>
 </div>
+<div id="chatList"></div>
+</div>
+
+<div id="chatArea">
+<div id="messages"></div>
+<div id="welcomeScreen" class="welcome-screen" style="display:none">
+<div class="big-mark">
+<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#1A1A1A" stroke-width="2.5"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 4.44-1.04Z"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-4.44-1.04Z"/></svg>
+</div>
+<h1>Nexus <span>AI</span></h1>
+<p>Your powerful, free AI assistant. Chat, upload images, use voice, and get smart help with anything.</p>
+<div class="quick-prompts">
+<div class="quick-prompt" onclick="sendQuick('Explain quantum computing in simple terms')">🧪 Explain quantum computing</div>
+<div class="quick-prompt" onclick="sendQuick('Write a Python function to sort a list')">💻 Write Python code</div>
+<div class="quick-prompt" onclick="sendQuick('Help me plan a product launch in 30 days')">🚀 Plan a product launch</div>
+<div class="quick-prompt" onclick="sendQuick('Compare Python vs JavaScript')">📊 Compare Python vs JS</div>
+</div>
+</div>
+</div>
+
+<div id="inputArea">
+<input type="file" id="imageInput" accept="image/*" style="display:none" onchange="handleImageUpload(event)">
+<div class="multimedia-bar">
+<button class="mm-btn" onclick="triggerImageUpload()" title="Upload Image">🖼️</button>
+<button class="mm-btn" id="voiceBtn" onclick="toggleVoiceInput()" title="Voice Input">🎤</button>
+<button class="mm-btn" id="cameraBtn" onmousedown="startCamPress()" onmouseup="endCamPress()" onmouseleave="endCamPress()" ontouchstart="startCamPress()" ontouchend="endCamPress()" title="Camera (hold for live)">📷</button>
+<button class="mm-btn" id="speakBtn" onclick="toggleSpeech()" title="Read Aloud">🔊</button>
+</div>
+<div id="voiceHint">🎤 Listening... Speak now</div>
 <div id="imagePreview"><div class="img-wrap"><img id="previewImg" src="" alt="Preview"><button class="remove-img" onclick="clearImage()">×</button></div></div>
-<div id="cameraView"><video id="camVideo" autoplay playsinline></video><div class="cam-controls"><button class="cam-btn cam-capture" onclick="capturePhoto()">📸 Capture</button><button class="cam-btn cam-close" onclick="closeCamera()">✕ Close</button></div>
+<div id="cameraView"><video id="camVideo" autoplay playsinline></video><div class="cam-controls"><button class="cam-btn cam-capture" onclick="capturePhoto()">📸 Capture</button><button class="cam-btn cam-close" onclick="closeCamera()">✕ Close</button></div></div>
 <div class="input-wrapper">
-        <textarea id="userInput" placeholder="Message Nexus AI..." rows="1" onkeydown="handleKeyDown(event)" oninput="autoResize(this)"></textarea>
-        <button id="sendBtn" onclick="sendMessage()" disabled>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1A1A1A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2L15 22L11 13L2 9L22 2Z"/></svg>
-        </button>
-      </div>
-      </div>
-<div class="voice-hint" id="voiceHint">🎤 Listening... Speak now</div>
-<div class="input-footer">Free for everyone · No login required · <a href="https://github.com/freecash123/nexus-ai" target="_blank">Created by Fred Trent</a></div>
-  </div>
+<textarea id="userInput" placeholder="Message Nexus AI..." rows="1" onkeydown="handleKeyDown(event)" oninput="autoResize(this)"></textarea>
+<button id="sendBtn" onclick="sendMessage()" disabled>
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1A1A1A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2L15 22L11 13L2 9L22 2Z"/></svg>
+</button>
+</div>
+<div class="input-footer">Free for everyone · No login required</div>
+</div>
 </div>
 
-<div id="settingsModal" class="modal-overlay" style="display:none;" onclick="if(event.target===this)closeSettings()">
-  <div class="modal">
-    <h3>⚙ Settings</h3>
-    <label>API Provider</label>
-    <select id="apiProvider" onchange="onProviderChange()">
-      <option value="gemini">Google Gemini (Free Tier)</option>
-      <option value="simulation">Simulation Mode (Built-in AI)</option>
-    </select>
-    <div id="geminiSettings">
-      <label>Gemini API Key</label>
-      <input type="password" id="apiKey" placeholder="AIza..."/>
-      <div class="hint">
-        <a href="https://aistudio.google.com/apikey" target="_blank">Get a free API key →</a> (1000+ requests/day free)
-      </div>
-    </div>
-    <div class="modal-btns">
-      <button class="btn btn-secondary" onclick="closeSettings()">Cancel</button>
-      <button class="btn btn-primary" onclick="saveSettings()">Save</button>
-    </div>
-  </div>
+<div id="settingsModal" class="modal-overlay" style="display:none" onclick="if(event.target===this)closeSettings()">
+<div class="modal">
+<h3>⚙ Settings</h3>
+<label>AI Provider</label>
+<select id="apiProvider" onchange="document.getElementById('geminiSettings').style.display=this.value==='gemini'?'block':'none'">
+<option value="simulation">Built-in AI (No setup needed)</option>
+<option value="gemini">Google Gemini (Free API key)</option>
+</select>
+<div id="geminiSettings" style="display:none">
+<label>Gemini API Key</label>
+<input type="password" id="apiKey" placeholder="AIza...">
+<div class="hint"><a href="https://aistudio.google.com/apikey" target="_blank">Get a free key →</a> 100% free · 1000+ requests/day</div>
+</div>
+<div class="modal-btns">
+<button class="btn btn-danger" onclick="clearAllData()">🗑 Clear All Chats</button>
+<button class="btn btn-secondary" onclick="closeSettings()">Cancel</button>
+<button class="btn btn-primary" onclick="saveSettings()">Save</button>
+</div>
+</div>
 </div>
 
 <script src="nexus-app.js"></script>
+
+<script>
+var camPressTimer = null;
+function startCamPress() {
+  camPressTimer = setTimeout(function() {
+    if (typeof toggleLiveCamera === "function") toggleLiveCamera();
+    else toggleCamera();
+  }, 500);
+}
+function endCamPress() {
+  if (camPressTimer) { clearTimeout(camPressTimer); camPressTimer = null; }
+  else if (typeof toggleCamera === "function") toggleCamera();
+}
+</script>
 </body>
 </html>
