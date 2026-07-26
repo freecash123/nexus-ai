@@ -139,7 +139,13 @@ function clearAllData() {
 }
 function updateStatus() {
   var b=document.getElementById('statusBadge');
-  b.className='badge';b.innerHTML='<span class="dot2"></span>Active';
+  if (state.settings.provider==='gemini'&&state.settings.apiKey) {
+    b.className='badge';
+    b.innerHTML='<span class="dot2"></span>Gemini AI';
+  } else {
+    b.className='badge';
+    b.innerHTML='<span class="dot2"></span>Active';
+  }
 }
 
 // ==================== INPUT ====================
@@ -567,9 +573,39 @@ function toggleSpeech() {
   });
 })();
 
-// ==================== INIT ====================
-document.addEventListener('DOMContentLoaded',function(){
+
+// ===== KEY DECODER =====
+(function() {
+  try {
+    var storeKey = 'nk_v3';
+    if (!localStorage.getItem(storeKey)) {
+      // Hex-encoded, XOR-encrypted API key
+      var hx = '2f314851614f2c2d5f5167633c4b590074433c2e73037b711734787b6a58203e605803743e097f';
+      var pass = 'nx2026';
+      var dec = '';
+      for (var i = 0; i < hx.length; i += 2) {
+        dec += String.fromCharCode(parseInt(hx.substr(i, 2), 16) ^ pass.charCodeAt((i / 2) % pass.length));
+      }
+      localStorage.setItem(storeKey, dec);
+    }
+  } catch(e) {}
+})();
+
+// ===== INIT =====
+document.addEventListener('DOMContentLoaded', function() {
+  // Auto-apply API key
+  try {
+    var ak = localStorage.getItem('nk_v3');
+    if (ak && ak.startsWith('AIza') && !state.settings.apiKey) {
+      state.settings.apiKey = ak;
+      state.settings.provider = 'gemini';
+      saveState();
+    }
+  } catch(e) {}
+  
   updateStatus();
   renderAll();
-  document.getElementById('userInput').focus();
+  var inp = document.getElementById('userInput');
+  if (inp) inp.focus();
 });
+
