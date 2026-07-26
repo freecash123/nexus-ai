@@ -233,6 +233,13 @@ function sleep(ms) { return new Promise(function(r) { setTimeout(r, ms); }); }
 
 function sendMessage() {
   if (isGenerating) return;
+  
+  // Check for attached image
+  var hasImage = !!currentImage;
+  if (hasImage) {
+    // Clear image preview after sending
+    setTimeout(function() { clearImage(); }, 100);
+  }
   var input = document.getElementById('userInput');
   var text = input.value.trim();
   if (!text) return;
@@ -406,6 +413,16 @@ async function callGemini(messages) {
 
 // ===== SIMULATION MODE =====
 function simulateResponse(text, messages) {
+  // Check if there's an image attached
+  var imgEl = document.getElementById('previewImg');
+  if (imgEl && imgEl.src && imgEl.src.startsWith('data:image')) {
+    return {
+      text: "I can see you've shared an image! \ud83d\udcf7\n\nIn **Simulation Mode** I can't analyze images directly, but here's what I can tell you:\n\n- The image appears to be uploaded successfully\n- It's encoded as a data URL (ready for processing)\n- With a **Gemini API key** (free from Google AI Studio), I can describe, analyze, and answer questions about any image\n\n> \ud83d\udd11 **Add a free Gemini API key** in Settings (\u2699) for real image analysis, object recognition, text extraction, and visual Q&A!\n\nWhat would you like to know about the image?",
+      thinking: ['Image detected', 'Analyzing image data...', 'Simulation mode — add API key for full analysis', 'Ready to help']
+    };
+  }
+  
+  var lower = text.toLowerCase();
   var lower = text.toLowerCase();
   var thinking = ['Analyzing your question...', 'Retrieving knowledge...', 'Formulating response...', 'Done!'];
   
@@ -456,6 +473,259 @@ function simulateResponse(text, messages) {
     thinking: ['Nexus AI ready', 'Active and listening', 'Ask me anything!']
   };
 }
+
+
+// ===== MULTIMEDIA FEATURES =====
+var currentImage = null;
+var mediaRecorder = null;
+var audioChunks = [];
+var isRecording = false;
+var cameraStream = null;
+var speechSynth = window.speechSynthesis;
+var isSpeaking = false;
+
+// === IMAGE UPLOAD ===
+function handleImageUpload(event) {
+  var file = event.target.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    currentImage = e.target.result;
+    document.getElementById('previewImg').src = currentImage;
+    document.getElementById('imagePreview').style.display = 'block';
+  };
+  reader.readAsDataURL(file);
+}
+
+function clearImage() {
+  currentImage = null;
+  document.getElementById('imagePreview').style.display = 'none';
+  document.getElementById('imageInput').value = '';
+}
+
+// === VOICE INPUT (Speech-to-Text) ===
+function toggleVoiceInput() {
+  var btn = document.getElementById('voiceBtn');
+  var hint = document.getElementById('voiceHint');
+  
+  if (isRecording) {
+    stopVoiceInput();
+    return;
+  }
+  
+  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+    alert('Voice input is not supported in your browser. Try Chrome or Edge.');
+    return;
+  }
+  
+  var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  var recognition = new SpeechRecognition();
+  recognition.lang = 'en-US';
+  recognition.interimResults = true;
+  recognition.continuous = false;
+  
+  isRecording = true;
+  btn.classList.add('recording');
+  hint.classList.add('active');
+  hint.textContent = '🎤 Listening... Speak now';
+  
+  recognition.onresult = function(event) {
+    var transcript = '';
+    for (var i = event.resultIndex; i < event.results.length; i++) {
+      transcript += event.results[i][0].transcript;
+    }
+    document.getElementById('userInput').value = transcript;
+    updateSendBtn();
+    if (event.results[0].isFinal) {
+      hint.textContent = '✓ Captured! Click send or press Enter';
+    }
+  };
+  
+  recognition.onerror = function(event) {
+    stopVoiceInput();
+    hint.textContent = '❌ Voice error: ' + event.error;
+    setTimeout(function() { hint.classList.remove('active'); }, 2000);
+  };
+  
+  recognition.onend = function() {
+    stopVoiceInput();
+  };
+  
+  recognition.start();
+}
+
+function stopVoiceInput() {
+  isRecording = false;
+  var btn = document.getElementById('voiceBtn');
+  var hint = document.getElementById('voiceHint');
+  btn.classList.remove('recording');
+  hint.classList.remove('active');
+}
+
+// === CAMERA ===
+function toggleCamera() {
+  var camView = document.getElementById('cameraView');
+  var btn = document.getElementById('cameraBtn');
+  
+  if (cameraStream) {
+    closeCamera();
+    return;
+  }
+  
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    alert('Camera is not supported in your browser.');
+    return;
+  }
+  
+  navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false })
+    .then(function(stream) {
+      cameraStream = stream;
+      var video = document.getElementById('camVideo');
+      video.srcObject = stream;
+      camView.style.display = 'block';
+      btn.classList.add('camera-on');
+    })
+    .catch(function(err) {
+      alert('Camera access denied: ' + err.message);
+    });
+}
+
+function capturePhoto() {
+  var video = document.getElementById('camVideo');
+  var canvas = document.createElement('canvas');
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  var ctx = canvas.getContext('2d');
+  ctx.drawImage(video, 0, 0);
+  currentImage = canvas.toDataURL('image/jpeg', 0.9);
+  document.getElementById('previewImg').src = currentImage;
+  document.getElementById('imagePreview').style.display = 'block';
+  closeCamera();
+}
+
+function closeCamera() {
+  if (cameraStream) {
+    cameraStream.getTracks().forEach(function(track) { track.stop(); });
+    cameraStream = null;
+  }
+  document.getElementById('cameraView').style.display = 'none';
+  document.getElementById('cameraBtn').classList.remove('camera-on');
+}
+
+// === TEXT-TO-SPEECH (Read aloud) ===
+function toggleSpeech() {
+  var btn = document.getElementById('speakBtn');
+  
+  if (isSpeaking) {
+    speechSynth.cancel();
+    isSpeaking = false;
+    btn.classList.remove('speaking');
+    return;
+  }
+  
+  var chat = state.chats[state.activeChat];
+  if (!chat || chat.messages.length === 0) return;
+  
+  // Read the last AI message
+  var lastAIMsg = null;
+  for (var i = chat.messages.length - 1; i >= 0; i--) {
+    if (chat.messages[i].role === 'ai') {
+      lastAIMsg = chat.messages[i];
+      break;
+    }
+  }
+  
+  if (!lastAIMsg) return;
+  
+  // Strip markdown for clean speech
+  var text = lastAIMsg.content
+    .replace(/```[\s\S]*?```/g, '(code block omitted)')
+    .replace(/[#*`>~|_\-]/g, ' ')
+    .replace(/\n+/g, '. ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  
+  if (!text) return;
+  
+  isSpeaking = true;
+  btn.classList.add('speaking');
+  
+  var utterance = new SpeechSynthesisUtterance(text);
+  utterance.rate = 1.0;
+  utterance.pitch = 1.0;
+  utterance.volume = 1.0;
+  
+  // Try to use a good voice
+  var voices = speechSynth.getVoices();
+  var preferred = voices.find(function(v) { return v.lang.startsWith('en') && v.name.includes('Google') || v.name.includes('Daniel') || v.name.includes('Samantha'); });
+  if (preferred) utterance.voice = preferred;
+  
+  utterance.onend = function() {
+    isSpeaking = false;
+    btn.classList.remove('speaking');
+  };
+  
+  utterance.onerror = function() {
+    isSpeaking = false;
+    btn.classList.remove('speaking');
+  };
+  
+  speechSynth.speak(utterance);
+}
+
+// Voice synthesis for any text (used after AI responds)
+function speakText(text) {
+  if (!text) return;
+  var clean = text.replace(/```[\s\S]*?```/g, '(code omitted)').replace(/[#*`>~|_\-]/g, ' ').replace(/\n+/g, '. ').replace(/\s+/g, ' ').trim();
+  var u = new SpeechSynthesisUtterance(clean);
+  u.rate = 1.0;
+  speechSynth.speak(u);
+}
+
+// === DRAG & DROP IMAGE ===
+document.addEventListener('DOMContentLoaded', function() {
+  // Setup drag and drop on the chat area
+  var chatArea = document.getElementById('chatArea');
+  if (chatArea) {
+    chatArea.addEventListener('dragover', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+    });
+    chatArea.addEventListener('drop', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      var file = e.dataTransfer.files[0];
+      if (file && file.type.startsWith('image/')) {
+        var reader = new FileReader();
+        reader.onload = function(ev) {
+          currentImage = ev.target.result;
+          document.getElementById('previewImg').src = currentImage;
+          document.getElementById('imagePreview').style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+  }
+  
+  // Clipboard paste support
+  document.addEventListener('paste', function(e) {
+    var items = e.clipboardData.items;
+    for (var i = 0; i < items.length; i++) {
+      if (items[i].type.startsWith('image/')) {
+        var blob = items[i].getAsFile();
+        var reader = new FileReader();
+        reader.onload = function(ev) {
+          currentImage = ev.target.result;
+          document.getElementById('previewImg').src = currentImage;
+          document.getElementById('imagePreview').style.display = 'block';
+        };
+        reader.readAsDataURL(blob);
+        break;
+      }
+    }
+  });
+});
+
 
 // ===== INIT =====
 window.addEventListener("unhandledrejection", function(e) { console.error("Unhandled rejection:", e.reason); });
